@@ -5,9 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using VRC.Core;
 using VRC.SDK3.Avatars.Components;
 using VRC.SDKBase.Editor;
+using VRC.SDKBase.Editor.Api;
 
 namespace VRCAutoUploader
 {
@@ -104,7 +106,7 @@ namespace VRCAutoUploader
             );
         }
 
-        private static void ProcessAvatar()
+        private static async void ProcessAvatar()
         {
             Debug.Log("[AutoUploader] Finding VRCAvatarDescriptor in project...");
             var guids = AssetDatabase.FindAssets("t:Prefab");
@@ -139,12 +141,25 @@ namespace VRCAutoUploader
                 return;
             }
 
-            // In a complete implementation, we would spawn the prefab in a scene, 
-            // configure the builder, and execute it.
-            // For now, we simulate success and show how the SDK builder is invoked.
-            Debug.Log("[AutoUploader] Mocking build process for architecture demonstration...");
-            Debug.Log("[AutoUploader] UPLOAD_SUCCESS");
-            EditorApplication.Exit(0);
+            if (!VRCSdkControlPanel.TryGetBuilder<IVRCSdkAvatarBuilderApi>(out var builder))
+            {
+                Debug.LogError("[AutoUploader] VRChat SDK Builder API not found. Is SDK 3.7+ installed?");
+                EditorApplication.Exit(1);
+                return;
+            }
+
+            try
+            {
+                Debug.Log("[AutoUploader] Starting BuildAndUpload process via SDK Builder API...");
+                await builder.BuildAndUpload(targetPrefab);
+                Debug.Log("[AutoUploader] UPLOAD_SUCCESS");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[AutoUploader] BuildAndUpload failed: {ex.Message}");
+                EditorApplication.Exit(1);
+            }
         }
 
         private static void OnUpdate()
