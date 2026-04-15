@@ -124,6 +124,21 @@ namespace VRCAutoUploader
             }
         }
 
+        [MenuItem("VRCAutoUploader/Manual Start")]
+        public static void ManualStart()
+        {
+            Log("Manual start triggered by user.");
+            _isRunning = false; // Reset state
+            if (File.Exists(TaskFilePath))
+            {
+                OnEditorReady();
+            }
+            else
+            {
+                LogError("Task file not found! Please run the python script first.");
+            }
+        }
+
         // ─── Lifecycle ──────────────────────────────────────────────────────
 
         private static void OnEditorReady()
