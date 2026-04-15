@@ -1,0 +1,4 @@
+# No external dependencies required — uses only Python stdlib
+# If extending with a TUI or web UI in the future, add:
+# rich>=13.0
+# textual>=0.40

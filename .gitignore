@@ -5,8 +5,18 @@ __pycache__/
 *.env
 .venv/
 venv/
+*.egg-info/
+
+# Project runtime
+TempVRCProject/
 TempVRCUploadProject/
+config.json
+tools/
 2fa.txt
+*.lock
+upload_tasks.json
+upload_results.json
+autouploader.log
 
 # Unity
 [Ll]ibrary/
@@ -35,5 +45,8 @@ ExportedObj/
 .consulo/
 *.private
 *.private.meta
-^*.private.[0-9]+$
-^*.private.[0-9]+.meta$
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
