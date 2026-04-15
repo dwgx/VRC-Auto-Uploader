@@ -119,6 +119,25 @@ def provision_project(cfg: Config) -> str:
     run([cfg.unity_exe, "-createProject", project_path,
          "-batchmode", "-nographics", "-quit"], timeout=300)
 
+    # Patch manifest.json to include standard VRC dependencies (NUnit, PostProcessing, etc.)
+    manifest_path = os.path.join(project_path, "Packages", "manifest.json")
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            deps = manifest.get("dependencies", {})
+            deps["com.unity.test-framework"] = "1.1.33"
+            deps["com.unity.postprocessing"] = "3.4.0"
+            deps["com.unity.textmeshpro"] = "3.0.6"
+            deps["com.unity.timeline"] = "1.7.6"
+            deps["com.unity.modules.animation"] = "1.0.0"
+            manifest["dependencies"] = deps
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2)
+            print("       ✓ Patched manifest.json with standard dependencies")
+        except Exception as e:
+            print(f"       ⚠ Failed to patch manifest.json: {e}")
+
     # Install VPM packages
     print("[2/3] Installing VRChat SDK & dependencies via vrc-get...")
     for pkg_id, required in VPM_PACKAGES:
