@@ -320,8 +320,8 @@ namespace VRCAutoUploader
 
                 try
                 {
-                    // For new avatars (no blueprint ID), use BuildAndUpload without existing avatar data
-                    await _builder.BuildAndUpload(avatarInstance, null, cancellationToken: cts.Token);
+                    // For new avatars (no blueprint ID), pass a new VRCAvatar struct instead of null
+                    await _builder.BuildAndUpload(avatarInstance, new VRCAvatar { Name = avatarInstance.name, ReleaseStatus = "private" }, cancellationToken: cts.Token);
 
                     // Get the new blueprint ID
                     var pm = avatarInstance.GetComponent<PipelineManager>();
