@@ -1,25 +1,4 @@
-/*
- * VRC Auto Uploader — Unity Editor Script
- * 
- * This script runs inside the Unity Editor (NOT batchmode) and handles:
- *   1. Reading the task list (upload_tasks.json) from the project root
- *   2. Opening the VRChat SDK Control Panel (required for builder API)
- *   3. Importing each .unitypackage
- *   4. Finding the avatar prefab and instantiating it in a scene
- *   5. Clearing old Blueprint IDs (so it uploads as a new avatar)
- *   6. Building and uploading via IVRCSdkAvatarBuilderApi
- *   7. Writing results to upload_results.json
- *
- * ARCHITECTURE NOTE:
- *   The VRChat SDK's BuildAndUpload pipeline REQUIRES the Unity Editor GUI
- *   to be running. VRCSdkControlPanel.TryGetBuilder() will return false in
- *   -batchmode because the SDK panel never initializes. This is why we run
- *   Unity in normal (GUI) mode and use [InitializeOnLoad] + delayCall.
- *
- * Reference implementation: I5UCC/VRCMultiUploader (GPL-3.0)
- */
-
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using System;
@@ -36,8 +15,6 @@ using VRC.SDKBase.Editor.Api;
 
 namespace VRCAutoUploader
 {
-    // ─── Data Models ────────────────────────────────────────────────────────
-
     [Serializable]
     public class UploadTask
     {
@@ -56,7 +33,7 @@ namespace VRCAutoUploader
     public class UploadResult
     {
         public string name;
-        public string status; // "success", "failed", "skipped"
+        public string status;
         public string error;
         public string blueprintId;
     }
@@ -66,8 +43,6 @@ namespace VRCAutoUploader
     {
         public List<UploadResult> results = new List<UploadResult>();
     }
-
-    // ─── Main Controller ────────────────────────────────────────────────────
 
     [InitializeOnLoad]
     public static class AutoUploader
@@ -86,38 +61,14 @@ namespace VRCAutoUploader
 
         static AutoUploader()
         {
-            // Only auto-start if invoked via -executeMethod
-            // Check if task file exists — this is our signal to run
-            if (!File.Exists(TaskFilePath))
-                return;
-
-            // Prevent double-execution
-            if (File.Exists(LockFilePath))
-            {
-                var lockTime = File.GetLastWriteTime(LockFilePath);
-                if ((DateTime.Now - lockTime).TotalMinutes < 30)
-                {
-                    Log("Lock file exists and is recent — another instance may be running. Aborting.");
-                    return;
-                }
-            }
-            File.WriteAllText(LockFilePath, DateTime.Now.ToString());
-
+            if (!File.Exists(TaskFilePath)) return;
             Log("=== VRC Auto Uploader Initialized ===");
-            Log($"Task file: {TaskFilePath}");
-
-            // Use delayCall to let Unity fully initialize first
             EditorApplication.delayCall += OnEditorReady;
         }
 
-        /// <summary>
-        /// Alternative entry point for -executeMethod invocation.
-        /// </summary>
         public static void Execute()
         {
             Log("Execute() called via -executeMethod");
-            // The static constructor already handles startup via [InitializeOnLoad].
-            // This method exists as a fallback entry point.
             if (!_isRunning && File.Exists(TaskFilePath))
             {
                 EditorApplication.delayCall += OnEditorReady;
@@ -128,18 +79,9 @@ namespace VRCAutoUploader
         public static void ManualStart()
         {
             Log("Manual start triggered by user.");
-            _isRunning = false; // Reset state
-            if (File.Exists(TaskFilePath))
-            {
-                OnEditorReady();
-            }
-            else
-            {
-                LogError("Task file not found! Please run the python script first.");
-            }
+            _isRunning = false;
+            if (File.Exists(TaskFilePath)) OnEditorReady();
         }
-
-        // ─── Lifecycle ──────────────────────────────────────────────────────
 
         private static void OnEditorReady()
         {
@@ -148,41 +90,45 @@ namespace VRCAutoUploader
 
             try
             {
-                // 1. Read task list
                 string json = File.ReadAllText(TaskFilePath);
                 _taskList = JsonUtility.FromJson<UploadTaskList>(json);
                 _resultList = new UploadResultList();
 
+                if (File.Exists(ResultFilePath))
+                {
+                    try
+                    {
+                        var resJson = File.ReadAllText(ResultFilePath);
+                        var oldRes = JsonUtility.FromJson<UploadResultList>(resJson);
+                        if (oldRes != null && oldRes.results != null) _resultList = oldRes;
+                    }
+                    catch (Exception) { }
+                }
+
                 if (_taskList?.tasks == null || _taskList.tasks.Length == 0)
                 {
-                    Log("No tasks found in task file. Exiting.");
+                    Log("No tasks found. Exiting.");
                     Finish();
                     return;
                 }
 
-                Log($"Loaded {_taskList.tasks.Length} upload task(s)");
+                _currentTaskIndex = _resultList.results.Count - 1;
+                Log($"Loaded {_taskList.tasks.Length} tasks. Resume index: {_currentTaskIndex + 1}");
 
-                // 2. Open SDK Control Panel — this is REQUIRED for the builder API
-                Log("Opening VRChat SDK Control Panel...");
                 EditorApplication.ExecuteMenuItem("VRChat SDK/Show Control Panel");
 
-                // 3. Wait for SDK to be ready, then start processing
-                // Hook into the SDK panel enable event
                 VRCSdkControlPanel.OnSdkPanelEnable += OnSdkPanelReady;
-
-                // Also poll periodically in case the event was already fired
                 EditorApplication.update += PollForSdkReady;
             }
             catch (Exception ex)
             {
-                LogError($"Failed to initialize: {ex.Message}\n{ex.StackTrace}");
+                LogError($"Failed to initialize: {ex.Message}");
                 Finish();
             }
         }
 
         private static void OnSdkPanelReady(object sender, EventArgs e)
         {
-            Log("SDK Control Panel is ready (event received)");
             _sdkReady = true;
             VRCSdkControlPanel.OnSdkPanelEnable -= OnSdkPanelReady;
         }
@@ -191,11 +137,8 @@ namespace VRCAutoUploader
         private static void PollForSdkReady()
         {
             _pollCount++;
-
-            // Try every 2 seconds (update runs ~60fps, so every 120 frames)
             if (_pollCount % 120 != 0) return;
 
-            // Check if we can get the builder
             if (VRCSdkControlPanel.TryGetBuilder<IVRCSdkAvatarBuilderApi>(out var builder))
             {
                 _builder = builder;
@@ -205,26 +148,21 @@ namespace VRCAutoUploader
             if (_sdkReady && _builder != null)
             {
                 EditorApplication.update -= PollForSdkReady;
-                Log("SDK Builder API acquired — starting upload pipeline");
+                Log("SDK Builder API acquired — starting tasks");
                 StartNextTask();
             }
 
-            // Timeout after 10 minutes
-            if (_pollCount > 120 * 60 * 10)
+            if (_pollCount > 120 * 60 * 15)
             {
                 EditorApplication.update -= PollForSdkReady;
-                LogError("Timed out waiting for SDK Control Panel. " +
-                         "Please ensure you are logged in to VRChat in the SDK panel.");
+                LogError("Timeout waiting for SDK. Are you logged in?");
                 Finish();
             }
         }
 
-        // ─── Task Processing ────────────────────────────────────────────────
-
         private static async void StartNextTask()
         {
             _currentTaskIndex++;
-
             if (_currentTaskIndex >= _taskList.tasks.Length)
             {
                 Log($"All tasks complete! ({_resultList.results.Count} processed)");
@@ -233,204 +171,108 @@ namespace VRCAutoUploader
             }
 
             var task = _taskList.tasks[_currentTaskIndex];
-            int num = _currentTaskIndex + 1;
-            int total = _taskList.tasks.Length;
-            Log($"═══ Task [{num}/{total}]: {task.name} ═══");
-
+            Log($"═══ Task [{_currentTaskIndex + 1}/{_taskList.tasks.Length}]: {task.name} ═══");
             var result = new UploadResult { name = task.name };
 
             try
             {
-                // Validate package exists
                 if (!File.Exists(task.packagePath))
                 {
-                    result.status = "failed";
-                    result.error = $"Package file not found: {task.packagePath}";
-                    LogError(result.error);
-                    _resultList.results.Add(result);
-                    StartNextTask();
-                    return;
+                    result.status = "failed"; result.error = "Package not found";
+                    _resultList.results.Add(result); StartNextTask(); return;
                 }
 
-                // Step 1: Create a clean scene
                 Log("Creating clean scene...");
                 var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-                // Step 2: Import the .unitypackage
                 Log($"Importing package: {Path.GetFileName(task.packagePath)}");
                 AssetDatabase.ImportPackage(task.packagePath, false);
 
-                // Give Unity time to process the import
                 await Task.Delay(3000);
                 AssetDatabase.Refresh();
-                await Task.Delay(2000);
+                await Task.Delay(3000);
 
-                // Step 3: Find avatar prefab
-                Log("Searching for avatar prefab...");
-                GameObject avatarInstance = FindAndInstantiateAvatar();
+                GameObject avatarInstance = FindAndInstantiateAvatar() ?? FindAvatarInScenes();
 
                 if (avatarInstance == null)
                 {
-                    // Try loading from scene files
-                    avatarInstance = FindAvatarInScenes();
+                    result.status = "failed"; result.error = "Could not find VRCAvatarDescriptor";
+                    LogError(result.error); _resultList.results.Add(result); CleanupImportedAssets(); StartNextTask(); return;
                 }
 
-                if (avatarInstance == null)
-                {
-                    result.status = "failed";
-                    result.error = "Could not find VRCAvatarDescriptor in imported assets";
-                    LogError(result.error);
-                    _resultList.results.Add(result);
-                    CleanupImportedAssets();
-                    StartNextTask();
-                    return;
-                }
-
-                Log($"Found avatar: {avatarInstance.name}");
-
-                // Step 4: Clear Blueprint ID (critical for new uploads)
                 var pipelineManager = avatarInstance.GetComponent<PipelineManager>();
-                if (pipelineManager != null)
+                if (pipelineManager != null) { pipelineManager.blueprintId = ""; }
+                else { pipelineManager = avatarInstance.AddComponent<PipelineManager>(); pipelineManager.blueprintId = ""; }
+
+                if (!string.IsNullOrEmpty(task.avatarName)) avatarInstance.name = task.avatarName;
+
+                if (_builder == null && !VRCSdkControlPanel.TryGetBuilder<IVRCSdkAvatarBuilderApi>(out _builder))
                 {
-                    if (!string.IsNullOrEmpty(pipelineManager.blueprintId))
-                    {
-                        Log($"Clearing old Blueprint ID: {pipelineManager.blueprintId}");
-                        pipelineManager.blueprintId = "";
-                    }
-                }
-                else
-                {
-                    // Add PipelineManager if missing
-                    pipelineManager = avatarInstance.AddComponent<PipelineManager>();
-                    pipelineManager.blueprintId = "";
+                    result.status = "failed"; result.error = "Builder not available"; _resultList.results.Add(result); StartNextTask(); return;
                 }
 
-                // Step 5: Set avatar name
-                if (!string.IsNullOrEmpty(task.avatarName))
-                {
-                    avatarInstance.name = task.avatarName;
-                }
-
-                // Step 6: Ensure builder is available
-                if (_builder == null)
-                {
-                    if (!VRCSdkControlPanel.TryGetBuilder<IVRCSdkAvatarBuilderApi>(out _builder))
-                    {
-                        result.status = "failed";
-                        result.error = "SDK Builder API not available. Is the SDK Control Panel open?";
-                        LogError(result.error);
-                        _resultList.results.Add(result);
-                        StartNextTask();
-                        return;
-                    }
-                }
-
-                // Step 7: Build and Upload
-                Log("Starting Build & Upload...");
                 CancellationTokenSource cts = new CancellationTokenSource();
-
-                // Subscribe to progress events
-                _builder.OnSdkBuildProgress += (sender, msg) => Log($"  Build: {msg}");
-                _builder.OnSdkBuildFinish += (sender, msg) => Log($"  Build finished, uploading...");
+                _builder.OnSdkBuildProgress += (sender, msg) => Log($"Build: {msg}");
 
                 try
                 {
-                    // For new avatars (no blueprint ID), pass a new VRCAvatar struct instead of null
-                    await _builder.BuildAndUpload(avatarInstance, new VRCAvatar { Name = avatarInstance.name, ReleaseStatus = "private" }, cancellationToken: cts.Token);
+                    string thumbPath = Path.Combine(Application.temporaryCachePath, "vrc_thumb.png");
+                    if (!File.Exists(thumbPath)) 
+                    {
+                        var tex = new Texture2D(800, 600, TextureFormat.RGB24, false);
+                        var colors = new Color[800 * 600];
+                        for (int i = 0; i < colors.Length; i++) colors[i] = Color.grey;
+                        tex.SetPixels(colors);
+                        tex.Apply();
+                        File.WriteAllBytes(thumbPath, tex.EncodeToPNG());
+                        UnityEngine.Object.DestroyImmediate(tex);
+                    }
 
-                    // Get the new blueprint ID
+                    var newAv = new VRCAvatar { 
+                        Name = avatarInstance.name, 
+                        Description = "Uploaded automatically by Uploader", 
+                        Tags = new List<string>(), 
+                        ReleaseStatus = "private" 
+                    };
+
+                    await _builder.BuildAndUpload(avatarInstance, newAv, thumbPath, cts.Token);
                     var pm = avatarInstance.GetComponent<PipelineManager>();
                     string newId = pm != null ? pm.blueprintId : "unknown";
 
-                    result.status = "success";
-                    result.blueprintId = newId;
-                    Log($"UPLOAD_SUCCESS — {task.name} (Blueprint: {newId})");
+                    result.status = "success"; result.blueprintId = newId;
                 }
-                catch (BuilderException ex)
+                catch (Exception ex)
                 {
-                    result.status = "failed";
-                    result.error = $"Build failed: {ex.Message}";
-                    LogError(result.error);
+                    result.status = "failed"; result.error = ex.Message; LogError(ex.Message);
                 }
-                catch (ValidationException ex)
-                {
-                    result.status = "failed";
-                    result.error = $"Validation failed: {ex.Message} — {string.Join("; ", ex.Errors)}";
-                    LogError(result.error);
-                }
-                catch (OwnershipException ex)
-                {
-                    result.status = "failed";
-                    result.error = $"Ownership error: {ex.Message}";
-                    LogError(result.error);
-                }
-                catch (UploadException ex)
-                {
-                    result.status = "failed";
-                    result.error = $"Upload error: {ex.Message}";
-                    LogError(result.error);
-                }
-                finally
-                {
-                    cts.Dispose();
-                }
+                finally { cts.Dispose(); }
             }
             catch (Exception ex)
             {
-                result.status = "failed";
-                result.error = $"Unexpected error: {ex.Message}";
-                LogError($"{result.error}\n{ex.StackTrace}");
+                result.status = "failed"; result.error = ex.Message; LogError(ex.Message);
             }
 
             _resultList.results.Add(result);
-
-            // Save intermediate results (in case Unity crashes mid-batch)
             SaveResults();
-
-            // Cleanup imported assets before next task
             CleanupImportedAssets();
-
-            // Small delay between tasks
             await Task.Delay(2000);
-
-            // Continue to next
             StartNextTask();
         }
 
-        // ─── Avatar Discovery ───────────────────────────────────────────────
-
         private static GameObject FindAndInstantiateAvatar()
         {
-            // Search all prefabs for VRCAvatarDescriptor
             var guids = AssetDatabase.FindAssets("t:Prefab");
             List<(string path, GameObject prefab)> candidates = new List<(string, GameObject)>();
-
             foreach (var guid in guids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-
-                // Skip Unity built-in and Package assets
                 if (!path.StartsWith("Assets/")) continue;
-                // Skip our own Editor scripts
                 if (path.Contains("Editor/VRCAutoUploader")) continue;
-
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                if (prefab == null) continue;
-
-                if (prefab.GetComponent<VRCAvatarDescriptor>() != null)
-                {
-                    candidates.Add((path, prefab));
-                }
+                if (prefab != null && prefab.GetComponent<VRCAvatarDescriptor>()) candidates.Add((path, prefab));
             }
-
             if (candidates.Count == 0) return null;
-
-            // Pick the "best" prefab — prefer ones at the root of import folders
-            var best = candidates
-                .OrderBy(c => c.path.Count(ch => ch == '/'))  // Prefer shallower paths
-                .First();
-
-            Log($"Instantiating prefab: {best.path}");
+            var best = candidates.OrderBy(c => c.path.Count(ch => ch == '/')).First();
             var instance = (GameObject)PrefabUtility.InstantiatePrefab(best.prefab);
             instance.transform.position = Vector3.zero;
             return instance;
@@ -438,135 +280,56 @@ namespace VRCAutoUploader
 
         private static GameObject FindAvatarInScenes()
         {
-            // Some models come as .unity scene files instead of prefabs
             var sceneGuids = AssetDatabase.FindAssets("t:Scene");
-
             foreach (var guid in sceneGuids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (!path.StartsWith("Assets/")) continue;
-
                 try
                 {
                     var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
-
                     foreach (var rootObj in scene.GetRootGameObjects())
                     {
-                        var descriptor = rootObj.GetComponentInChildren<VRCAvatarDescriptor>();
-                        if (descriptor != null)
+                        if (rootObj.GetComponentInChildren<VRCAvatarDescriptor>() != null)
                         {
-                            Log($"Found avatar in scene: {path} → {descriptor.gameObject.name}");
-                            // Move to our main scene
-                            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(
-                                rootObj, 
-                                EditorSceneManager.GetActiveScene()
-                            );
+                            UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(rootObj, EditorSceneManager.GetActiveScene());
                             EditorSceneManager.CloseScene(scene, true);
                             return rootObj;
                         }
                     }
-
                     EditorSceneManager.CloseScene(scene, true);
-                }
-                catch (Exception ex)
-                {
-                    LogError($"Error opening scene {path}: {ex.Message}");
-                }
-            }
-
-            return null;
-        }
-
-        // ─── Utility ────────────────────────────────────────────────────────
-
-        private static void CleanupImportedAssets()
-        {
-            // Remove imported assets to start clean for next package
-            // We keep the Editor/VRCAutoUploader folder
-            var assetDirs = Directory.GetDirectories(Path.Combine(ProjectRoot, "Assets"));
-            foreach (var dir in assetDirs)
-            {
-                string dirName = Path.GetFileName(dir);
-                if (dirName == "Editor") continue; // Keep our scripts
-
-                try
-                {
-                    FileUtil.DeleteFileOrDirectory(dir);
-                    FileUtil.DeleteFileOrDirectory(dir + ".meta");
                 }
                 catch { }
             }
+            return null;
+        }
 
-            // Also remove loose files in Assets/ (but not .meta for Editor)
-            var assetFiles = Directory.GetFiles(Path.Combine(ProjectRoot, "Assets"));
-            foreach (var file in assetFiles)
+        private static void CleanupImportedAssets()
+        {
+            var assetDirs = Directory.GetDirectories(Path.Combine(ProjectRoot, "Assets"));
+            foreach (var dir in assetDirs)
             {
-                if (!file.EndsWith(".meta") || !file.Contains("Editor"))
-                {
-                    try { FileUtil.DeleteFileOrDirectory(file); } catch { }
-                }
+                if (Path.GetFileName(dir) == "Editor") continue;
+                try { FileUtil.DeleteFileOrDirectory(dir); FileUtil.DeleteFileOrDirectory(dir + ".meta"); } catch { }
             }
-
             AssetDatabase.Refresh();
         }
 
         private static void SaveResults()
         {
-            try
-            {
-                string json = JsonUtility.ToJson(_resultList, true);
-                File.WriteAllText(ResultFilePath, json);
-            }
-            catch (Exception ex)
-            {
-                LogError($"Failed to save results: {ex.Message}");
-            }
+            try { File.WriteAllText(ResultFilePath, JsonUtility.ToJson(_resultList, true)); } catch { }
         }
 
         private static void Finish()
         {
             SaveResults();
-
-            // Cleanup
-            try
-            {
-                if (File.Exists(LockFilePath))
-                    File.Delete(LockFilePath);
-            }
-            catch { }
-
+            try { if (File.Exists(LockFilePath)) File.Delete(LockFilePath); } catch { }
             Log("=== VRC Auto Uploader Finished ===");
-
-            // Exit Unity after a short delay
-            EditorApplication.delayCall += () =>
-            {
-                EditorApplication.Exit(0);
-            };
+            EditorApplication.delayCall += () => { EditorApplication.Exit(0); };
         }
 
-        // ─── Logging ────────────────────────────────────────────────────────
-
-        private static void Log(string message)
-        {
-            Debug.Log($"[AutoUploader] {message}");
-            AppendToLocalLog($"[INFO] {message}");
-        }
-
-        private static void LogError(string message)
-        {
-            Debug.LogError($"[AutoUploader] {message}");
-            AppendToLocalLog($"[ERROR] {message}");
-        }
-
-        private static void AppendToLocalLog(string message)
-        {
-            try
-            {
-                string logFile = Path.Combine(ProjectRoot, "autouploader.log");
-                File.AppendAllText(logFile,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
-            }
-            catch { }
-        }
+        private static void Log(string msg) { Debug.Log($"[AutoUploader] {msg}"); AppendToLocalLog($"[INFO] {msg}"); }
+        private static void LogError(string msg) { Debug.LogError($"[AutoUploader] {msg}"); AppendToLocalLog($"[ERROR] {msg}"); }
+        private static void AppendToLocalLog(string msg) { try { File.AppendAllText(Path.Combine(ProjectRoot, "autouploader.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}\n"); } catch { } }
     }
 }
