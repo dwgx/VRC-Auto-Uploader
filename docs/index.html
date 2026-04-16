@@ -167,12 +167,11 @@
       background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2);
     }
 
-    /* 3D TERMINAL SHOWCASE */
     .terminal-container {
       margin-top: 80px;
-      perspective: 1000px;
+      perspective: 1200px;
       width: 100%; max-width: 860px;
-      animation: float-terminal 6s ease-in-out infinite;
+      transform-style: preserve-3d;
     }
     .terminal {
       background: rgba(5,5,10,0.7);
@@ -180,12 +179,16 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       box-shadow: 0 40px 100px -20px rgba(180, 41, 249, 0.2), inset 0 0 0 1px rgba(255,255,255,0.05);
-      transform: rotateX(10deg);
-      transform-origin: center;
-      transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform-style: preserve-3d;
+      transform: rotateX(5deg) translateY(-5px);
+      transition: transform 0.1s ease-out, box-shadow 0.3s ease;
       overflow: hidden;
+      will-change: transform;
     }
-    .terminal-container:hover .terminal { transform: rotateX(0deg) scale(1.02); }
+    .terminal-container:hover .terminal {
+      box-shadow: 0 50px 120px -20px rgba(46, 242, 255, 0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
+      transition: box-shadow 0.3s ease;
+    }
     .t-header {
       padding: 16px 24px; border-bottom: 1px solid var(--border);
       display: flex; gap: 8px; align-items: center;
@@ -201,15 +204,13 @@
       content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
       background: linear-gradient(to top, rgba(5,5,10,1), transparent); pointer-events: none;
     }
-    .log-line span.cmd { color: var(--accent-glow); font-weight: 700; }
+    .log-line span.cmd { color: var(--accent-glow); font-weight: 700; cursor: pointer; position: relative; }
+    .log-line span.cmd:hover { filter: brightness(1.2); }
+    .log-line span.cmd::after { content: 'Click to Copy'; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; }
+    .log-line span.cmd:hover::after { opacity: 1; }
     .log-line span.info { color: #818cf8; }
     .log-line span.success { color: #34d399; }
     .log-line span.highlight { background: rgba(180,41,249,0.2); padding: 2px 6px; border-radius: 4px; }
-    
-    @keyframes float-terminal {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
-    }
 
     /* BENTO GRID (FEATURES) */
     .bento-section { padding: 160px 0; }
@@ -440,16 +441,69 @@
   </footer>
 
   <script>
-    // Subtle glow effect following mouse on bento cards
+    // Smooth Mouse Glow Effect
     document.querySelectorAll('.bento-card').forEach(card => {
       card.addEventListener('mousemove', e => {
         const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        card.style.setProperty('--mouse-x', `${x}px`);
-        card.style.setProperty('--mouse-y', `${y}px`);
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
       });
     });
+
+    // 3D Tilt Effect for Terminal
+    const terminalWrap = document.querySelector('.terminal-container');
+    const terminal = document.querySelector('.terminal');
+    
+    // Fallback float if no mouse move
+    let isHovering = false;
+    let tTime = 0;
+    
+    function animateFloat() {
+      if (!isHovering) {
+        tTime += 0.02;
+        const y = Math.sin(tTime) * 10;
+        const rx = 5 + Math.cos(tTime) * 2;
+        terminal.style.transform = `rotateX(${rx}deg) translateY(${y}px)`;
+      }
+      requestAnimationFrame(animateFloat);
+    }
+    requestAnimationFrame(animateFloat);
+
+    terminalWrap.addEventListener('mousemove', (e) => {
+      isHovering = true;
+      const rect = terminalWrap.getBoundingClientRect();
+      const x = e.clientX - rect.left; // x position within the element
+      const y = e.clientY - rect.top; // y position within the element
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateX = ((y - centerY) / centerY) * -10; // max 10 deg
+      const rotateY = ((x - centerX) / centerX) * 10; // max 10 deg
+      
+      terminal.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+    });
+
+    terminalWrap.addEventListener('mouseleave', () => {
+      isHovering = false;
+      terminal.style.transform = `perspective(1200px) rotateX(5deg) translateY(-5px)`;
+    });
+
+    // Click to copy
+    const cmdSpan = document.querySelector('.log-line span.cmd');
+    if (cmdSpan) {
+      cmdSpan.addEventListener('click', () => {
+        navigator.clipboard.writeText('python main.py batch --dir "D:\\Model" -y');
+        cmdSpan.style.color = '#34d399';
+        const style = document.createElement('style');
+        style.innerHTML = '.log-line span.cmd::after { content: "Copied!" !important; background: #34d399 !important; }';
+        document.head.appendChild(style);
+        setTimeout(() => {
+          cmdSpan.style.color = '';
+          document.head.removeChild(style);
+        }, 2000);
+      });
+    }
   </script>
 </body>
 </html>
