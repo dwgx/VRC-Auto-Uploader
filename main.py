@@ -150,15 +150,23 @@ def provision_project(cfg: Config) -> str:
                 raise
             print(f"       ⚠ {pkg_id} (optional, skipped)")
 
-    # Inject our C# scripts
+    # Inject our C# scripts (exclude backup files to prevent compile errors)
     print("[3/3] Injecting AutoUploader scripts...")
     editor_dir = os.path.join(project_path, "Assets", "Editor", "VRCAutoUploader")
     os.makedirs(editor_dir, exist_ok=True)
 
+    injected = 0
     for cs_file in Path(UNITY_SCRIPTS_DIR).glob("*.cs"):
+        # Skip backup files (e.g. AutoUploader_backup.cs)
+        if "_backup" in cs_file.stem.lower() or cs_file.stem.lower().endswith("_bak"):
+            print(f"       ⚠ Skipping backup file: {cs_file.name}")
+            continue
         dest = os.path.join(editor_dir, cs_file.name)
         shutil.copy2(str(cs_file), dest)
         print(f"       → {cs_file.name}")
+        injected += 1
+    if injected == 0:
+        raise RuntimeError("No C# scripts found to inject. Check UnityScripts/ directory.")
 
     print(f"\n[✓] Project ready at: {project_path}")
     return project_path

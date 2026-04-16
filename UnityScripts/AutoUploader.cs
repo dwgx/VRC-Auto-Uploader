@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using System;
@@ -234,6 +234,10 @@ namespace VRCAutoUploader
                         Tags = new List<string>(), 
                         ReleaseStatus = "private" 
                     };
+
+                    // Save the scene to avoid VRC SDK prompting the user to save "Untitled" scene
+                    string tempScenePath = "Assets/TempUploadScene.unity";
+                    EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), tempScenePath);
 
                     await _builder.BuildAndUpload(avatarInstance, newAv, thumbPath, cts.Token);
                     var pm = avatarInstance.GetComponent<PipelineManager>();

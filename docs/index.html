@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="VRC-Auto-Uploader — 一条命令批量上传所有 VRChat Avatar。全自动 Python + Unity 流水线，无需人工干预。" />
+  <title>VRC Auto Uploader — 全自动 VRChat Avatar 批量上传工具</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:       #0a0a0f;
+      --bg2:      #111118;
+      --bg3:      #1a1a26;
+      --border:   rgba(255,255,255,0.08);
+      --accent:   #7c6cff;
+      --accent2:  #a78bfa;
+      --green:    #4ade80;
+      --red:      #f87171;
+      --yellow:   #facc15;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --radius:   14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(10,10,15,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent2); }
+    nav a {
+      color: var(--muted); text-decoration: none; font-size: 0.875rem;
+      transition: color .2s;
+    }
+    nav a:hover { color: var(--text); }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-btn {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: opacity .2s !important;
+    }
+    .nav-btn:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+    }
+    .hero::before {
+      content:'';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 20%, rgba(124,108,255,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid rgba(124,108,255,.4);
+      border-radius: 999px;
+      font-size: 0.8rem; font-weight: 600; color: var(--accent2);
+      margin-bottom: 28px;
+      background: rgba(124,108,255,.08);
+    }
+    .badge::before { content:'✦'; }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -2px;
+      margin-bottom: 20px;
+    }
+    h1 .hl { 
+      background: linear-gradient(135deg, #7c6cff 0%, #a78bfa 50%, #c4b5fd 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .subtitle {
+      font-size: 1.2rem; color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 42px;
+    }
+    .cta-group { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent);
+      color: #fff; text-decoration: none;
+      padding: 14px 28px; border-radius: 10px;
+      font-weight: 700; font-size: 1rem;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 0 40px rgba(124,108,255,.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(124,108,255,.5); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border);
+      color: var(--text); text-decoration: none;
+      padding: 14px 28px; border-radius: 10px;
+      font-weight: 600; font-size: 1rem;
+      transition: background .2s, border-color .2s;
+      background: var(--bg2);
+    }
+    .btn-secondary:hover { background: var(--bg3); border-color: rgba(255,255,255,.15); }
+
+    /* TERMINAL DEMO */
+    .terminal-wrap {
+      margin: 56px auto 0;
+      max-width: 680px; width: 100%;
+    }
+    .terminal {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6);
+    }
+    .terminal-bar {
+      background: #1a1a24;
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28c840; }
+    .terminal-title { margin-left: auto; font-size: .75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .terminal-body {
+      padding: 24px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    .t-cmd { color: #4ade80; }
+    .t-info { color: #7c6cff; }
+    .t-ok { color: #34d399; }
+    .t-muted { color: var(--muted); }
+    .t-name { color: #fbbf24; }
+
+    /* FEATURES */
+    section { padding: 100px 24px; }
+    .container { max-width: 1080px; margin: 0 auto; }
+    .section-tag {
+      display: inline-block;
+      font-size: .75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800; letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .section-desc { color: var(--muted); max-width: 520px; font-size: 1.05rem; margin-bottom: 56px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(124,108,255,.4); transform: translateY(-3px); }
+    .feature-icon {
+      font-size: 1.8rem; margin-bottom: 14px;
+    }
+    .feature-card h3 { font-weight: 700; margin-bottom: 8px; font-size: 1.05rem; }
+    .feature-card p { color: var(--muted); font-size: .9rem; }
+
+    /* HOW IT WORKS */
+    .steps { background: var(--bg2); }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0;
+      margin-top: 48px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .step {
+      padding: 28px 24px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .step:last-child { border-right: none; }
+    .step-num {
+      font-size: .75rem; font-weight: 700; letter-spacing: 1px;
+      color: var(--accent2);
+      margin-bottom: 10px;
+    }
+    .step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: .85rem; color: var(--muted); }
+
+    /* QUICKSTART */
+    .quickstart { background: var(--bg3); }
+    .steps-list { counter-reset: step; display: flex; flex-direction: column; gap: 20px; }
+    .qs-step {
+      display: flex; gap: 20px; align-items: flex-start;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 24px;
+    }
+    .qs-num {
+      flex: 0 0 36px; height: 36px;
+      background: var(--accent); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: .9rem;
+    }
+    .qs-content h3 { font-weight: 700; margin-bottom: 8px; }
+    .qs-content p { color: var(--muted); font-size: .9rem; margin-bottom: 12px; }
+    pre {
+      background: #0d0d14; border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace; font-size: .82rem;
+      overflow-x: auto; color: #a5f3fc;
+    }
+    code { font-family: 'JetBrains Mono', monospace; }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+    .faq-item {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 24px;
+    }
+    .faq-item h3 { font-weight: 700; margin-bottom: 8px; font-size: 1rem; }
+    .faq-item p { color: var(--muted); font-size: .9rem; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    footer a { color: var(--accent2); text-decoration: none; }
+
+    /* RESULT BADGES */
+    .result-demo {
+      margin-top: 48px;
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem; line-height: 1.9;
+    }
+    .rs { color: var(--green); }
+    .rf { color: var(--red); }
+    .rb { color: var(--accent2); }
+
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .nav-links { gap: 16px; }
+      .hero { padding: 100px 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">VRC<span>Uploader</span></div>
+  <div class="nav-links">
+    <a href="#features">特性</a>
+    <a href="#quickstart">快速开始</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="nav-btn">GitHub →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="badge">开箱即用 · 全自动 · 零干预</div>
+  <h1>
+    批量上传 VRChat Avatar<br/>
+    <span class="hl">一条命令搞定</span>
+  </h1>
+  <p class="subtitle">
+    从 <code>.unitypackage</code> 到 VRChat 服务器，Python + Unity 全自动流水线。
+    支持批量处理整个模型文件夹，无需人工操作。
+  </p>
+  <div class="cta-group">
+    <a href="#quickstart" class="btn-primary">🚀 快速开始</a>
+    <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="btn-secondary">⭐ GitHub</a>
+  </div>
+
+  <!-- TERMINAL DEMO -->
+  <div class="terminal-wrap">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+        <div class="terminal-title">PowerShell — VRC-Auto-Uploader</div>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-muted">$</span> <span class="t-cmd">python main.py batch --dir "D:\Model" -y</span></div>
+        <div class="t-muted">&nbsp;</div>
+        <div class="t-info">[*] Scanning and extracting from: D:\Model</div>
+        <div class="t-ok">[✓] Found 60 uploadable models</div>
+        <div class="t-muted">&nbsp;</div>
+        <div class="t-info">Phase 1: Environment Provisioning</div>
+        <div class="t-ok">       ✓ com.vrchat.avatars</div>
+        <div class="t-ok">       ✓ jp.lilxyzw.liltoon</div>
+        <div class="t-ok">       ✓ nadena.dev.modular-avatar</div>
+        <div class="t-muted">&nbsp;</div>
+        <div class="t-info">═══ Task [1/60]: <span class="t-name">Airi爱莉</span> ═══</div>
+        <div class="t-ok">[AutoUploader] Build: Build Complete</div>
+        <div class="t-info">═══ Task [2/60]: <span class="t-name">Azuki</span> ═══</div>
+        <div class="t-ok">[AutoUploader] Build: Build Complete</div>
+        <div class="t-muted">... (58 more) ...</div>
+        <div class="t-muted">&nbsp;</div>
+        <div class="t-ok">[✓] All 60 avatars uploaded successfully!</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <div class="section-tag">Features</div>
+    <h2>为什么选择这个工具？</h2>
+    <p class="section-desc">开箱即用，拒绝折腾。几乎不需要任何 Unity 知识。</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧹</div>
+        <h3>零污染隔离环境</h3>
+        <p>每次上传都在独立的临时 Unity 工程中进行，模型之间绝不相互干扰，上传完自动清理。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💊</div>
+        <h3>自动安装依赖</h3>
+        <p>自动安装 VRChat SDK、lilToon（防粉红材质）、Modular Avatar，无需手动配置。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔑</div>
+        <h3>Blueprint ID 自动清理</h3>
+        <p>自动清除原作者的蓝图 ID，避免"无法覆盖他人 Avatar"错误，确保上传到你自己的账号。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>智能解压提取</h3>
+        <p>自动从 .zip/.rar/.7z 中提取 .unitypackage，过滤 Shader 插件包，只处理模型本体。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>全自动弹窗处理</h3>
+        <p>自动接受版权声明弹窗、关闭 SDK 更新提示，无需在旁边守着盯屏幕。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>完善错误处理</h3>
+        <p>覆盖 SDK 所有异常类型（Validation / Ownership / Upload / Builder），失败自动跳过继续处理下一个。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="steps">
+  <div class="container">
+    <div class="section-tag">How It Works</div>
+    <h2>工作原理</h2>
+    <p class="section-desc">Python 主控 + Unity C# 脚本协同工作，全程无需人工操作。</p>
+    <div class="pipeline">
+      <div class="step">
+        <div class="step-num">STEP 01</div>
+        <h3>🔍 扫描解压</h3>
+        <p>扫描模型目录，自动从 .zip/.rar 等压缩包中提取 .unitypackage</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 02</div>
+        <h3>🏗️ 创建工程</h3>
+        <p>用 vrc-get 在临时目录创建纯净 Unity 工程并安装 SDK + lilToon</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 03</div>
+        <h3>💉 注入脚本</h3>
+        <p>注入 C# 自动化脚本，启动 Unity GUI 模式（SDK 要求）</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 04</div>
+        <h3>🚀 构建上传</h3>
+        <p>自动导入模型、清理 Blueprint ID、Build & Publish 到 VRChat</p>
+      </div>
+    </div>
+
+    <!-- Result JSON Demo -->
+    <div class="result-demo">
+      <div class="t-muted">// upload_results.json — 自动生成的上传结果报告</div>
+      <div>{</div>
+      <div>&nbsp; "results": [</div>
+      <div>&nbsp;&nbsp;&nbsp; { "name": "<span class="rb">Airi爱莉</span>", "status": "<span class="rs">success</span>", "blueprintId": "<span class="rb">avtr_582e9038...</span>" },</div>
+      <div>&nbsp;&nbsp;&nbsp; { "name": "<span class="rb">Azuki</span>",    "status": "<span class="rs">success</span>", "blueprintId": "<span class="rb">avtr_e728a87d...</span>" },</div>
+      <div>&nbsp;&nbsp;&nbsp; { "name": "<span class="rb">SomeModel</span>","status": "<span class="rf">failed</span>",  "error":       "<span class="rf">Could not find VRCAvatarDescriptor</span>" }</div>
+      <div>&nbsp; ]</div>
+      <div>}</div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICKSTART -->
+<section id="quickstart" class="quickstart">
+  <div class="container">
+    <div class="section-tag">Quickstart</div>
+    <h2>快速开始</h2>
+    <p class="section-desc">3 步完成所有配置，然后一条命令开始批量上传。</p>
+    <div class="steps-list">
+
+      <div class="qs-step">
+        <div class="qs-num">1</div>
+        <div class="qs-content">
+          <h3>克隆仓库 + 首次配置</h3>
+          <p>自动检测 Unity 安装路径，下载 vrc-get 包管理器。</p>
+          <pre>git clone https://github.com/dwgx/VRC-Auto-Uploader.git
+cd VRC-Auto-Uploader
+python main.py setup</pre>
+        </div>
+      </div>
+
+      <div class="qs-step">
+        <div class="qs-num">2</div>
+        <div class="qs-content">
+          <h3>首次登录 VRChat（仅需一次）</h3>
+          <p>运行任意一次上传命令后，Unity 会弹出 VRChat SDK 登录界面。<strong>手动登录一次</strong>，之后 session 会持久化，无需再次输入账密。</p>
+          <pre>python main.py upload --package "D:\Model\Azuki\Azuki.unitypackage"</pre>
+        </div>
+      </div>
+
+      <div class="qs-step">
+        <div class="qs-num">3</div>
+        <div class="qs-content">
+          <h3>批量上传整个目录</h3>
+          <p>扫描整个模型目录，自动解压、依次上传所有模型，完全无须监督。</p>
+          <pre>python main.py batch --dir "D:\Model" -y</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-tag">FAQ</div>
+    <h2>常见问题</h2>
+    <p class="section-desc">遇到问题？先在这里查查。</p>
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3>🔐 为什么必须手动登录一次？</h3>
+        <p>VRChat SDK 不支持在代码中直接传递账号密码。首次登录后，SDK 会将 session token 持久化到本地，后续所有上传均自动使用已保存的 token，无需再次登录。</p>
+      </div>
+      <div class="faq-item">
+        <h3>🖥️ 为什么上传时 Unity GUI 会弹出来？</h3>
+        <p>VRChat SDK 的 <code>VRCSdkControlPanel.TryGetBuilder()</code> 依赖 Unity Editor GUI 初始化。在 <code>-batchmode -nographics</code> 下 Builder 实例不会注册，上传必然失败。本工具使用正确的 GUI 模式启动 Unity，但全程自动化无需人工操作。</p>
+      </div>
+      <div class="faq-item">
+        <h3>🖱️ 上传过程中出现弹窗需要点击怎么办？</h3>
+        <p>工具内置 <code>PopupSuppressor</code> 脚本，会自动识别并关闭 VRChat SDK 的版权声明弹窗和更新提示弹窗，无需手动点击。</p>
+      </div>
+      <div class="faq-item">
+        <h3>📦 支持哪些压缩格式？</h3>
+        <p>支持 <code>.zip</code>（使用 Windows 内置 tar 或 PowerShell）、<code>.rar</code> 和 <code>.7z</code>（需要系统安装 7-Zip）。直接放置的 <code>.unitypackage</code> 文件无需解压，直接使用。</p>
+      </div>
+      <div class="faq-item">
+        <h3>🎨 模型显示粉红色材质怎么办？</h3>
+        <p>工具会自动安装 <strong>lilToon</strong>（日本模型最常用的 Shader）。如果你的模型使用 Poiyomi 等其他 Shader，可能仍会有粉红材质，但 VRChat 官方不允许在无 Transparency 情况下使用 Poiyomi，请使用 lilToon 版本的模型。</p>
+      </div>
+      <div class="faq-item">
+        <h3>⚠️ 上传权限要求是什么？</h3>
+        <p>VRChat 账号需要达到 <strong>New User（蓝名）</strong> 及以上信任等级才能上传 Avatar。如果你是新账号，需要先在游戏里多玩一段时间。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    <strong>VRC Auto Uploader</strong> — 开源，仅供学习研究。请确保你对上传的模型拥有合法权利。<br/>
+    <a href="https://github.com/dwgx/VRC-Auto-Uploader">GitHub</a> ·
+    <a href="https://creators.vrchat.com/">VRChat Creator Docs</a> ·
+    <a href="https://github.com/vrc-get/vrc-get">vrc-get</a>
+  </p>
+</footer>
+
+</body>
+</html>
