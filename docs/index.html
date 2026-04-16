@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="VRC-Auto-Uploader — An ultra-modern, fully automated avatar batch uploader for VRChat." />
-  <title>VRC Auto Uploader / Automated Perfection</title>
+  <meta name="description" content="VRC-Auto-Uploader — 全自动 VRChat 模型批量上传流水线。" />
+  <title>VRC Auto Uploader / 绝对自动化</title>
 
-  <!-- Google Fonts: Space Grotesk for creative modern headings, Inter for body text, JetBrains Mono for code -->
+  <!-- Google Fonts & Phosphor Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <style>
     :root {
@@ -32,7 +33,7 @@
     body {
       background-color: var(--bg);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       overflow-x: hidden;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
@@ -56,17 +57,8 @@
       animation: float 20s infinite alternate ease-in-out;
       opacity: 0.4;
     }
-    .orb-1 {
-      width: 600px; height: 600px;
-      background: #b429f9;
-      top: -10%; left: -10%;
-    }
-    .orb-2 {
-      width: 500px; height: 500px;
-      background: #2ef2ff;
-      bottom: -10%; right: -5%;
-      animation-delay: -5s;
-    }
+    .orb-1 { width: 600px; height: 600px; background: #b429f9; top: -10%; left: -10%; }
+    .orb-2 { width: 500px; height: 500px; background: #2ef2ff; bottom: -10%; right: -5%; animation-delay: -5s; }
 
     @keyframes float {
       0% { transform: translate(0, 0) scale(1); }
@@ -98,13 +90,18 @@
       padding: 12px 32px;
       display: flex; gap: 40px; align-items: center;
       transition: all 0.3s ease;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .nav-link {
       color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
-      transition: color 0.2s;
+      transition: color 0.2s; display: flex; align-items: center; gap: 6px;
     }
+    .nav-link i { font-size: 1.1rem; }
     .nav-link:hover { color: var(--text); }
     .brand { font-weight: 700; font-size: 1.1rem; background: var(--accent-gradient); -webkit-background-clip: text; color: transparent; }
+
+    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    @keyframes fadeUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
     /* LAYOUT COMPONENTS */
     .container {
@@ -121,9 +118,10 @@
       text-align: center;
       padding-top: 100px;
       position: relative;
+      animation: fadeUp 1s ease-out;
     }
     .pill {
-      display: inline-block; padding: 6px 16px; border-radius: 99px;
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 99px;
       background: rgba(46, 242, 255, 0.1); border: 1px solid rgba(46, 242, 255, 0.2);
       color: var(--accent-glow); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
       margin-bottom: 30px;
@@ -131,7 +129,7 @@
     }
     .hero h1 {
       font-size: clamp(3rem, 7vw, 6rem);
-      line-height: 1; letter-spacing: -3px;
+      line-height: 1.1; letter-spacing: -2px;
       margin-bottom: 24px;
     }
     .hero h1 span {
@@ -150,23 +148,17 @@
       font-weight: 600; font-size: 1rem; text-decoration: none;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 10px;
     }
-    .btn-primary {
-      background: var(--text); color: var(--bg);
-    }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 40px rgba(255,255,255,0.2);
-    }
+    .btn-primary { background: var(--text); color: var(--bg); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(255,255,255,0.2); }
     .btn-outline {
       background: rgba(255,255,255,0.02); color: var(--text);
-      border: 1px solid var(--border);
-      backdrop-filter: blur(10px);
+      border: 1px solid var(--border); backdrop-filter: blur(10px);
     }
-    .btn-outline:hover {
-      background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2);
-    }
+    .btn-outline:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
 
+    /* 3D TERMINAL SHOWCASE */
     .terminal-container {
       margin-top: 80px;
       perspective: 1200px;
@@ -184,6 +176,7 @@
       transition: transform 0.1s ease-out, box-shadow 0.3s ease;
       overflow: hidden;
       will-change: transform;
+      text-align: left;
     }
     .terminal-container:hover .terminal {
       box-shadow: 0 50px 120px -20px rgba(46, 242, 255, 0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
@@ -206,12 +199,12 @@
     }
     .log-line span.cmd { color: var(--accent-glow); font-weight: 700; cursor: pointer; position: relative; }
     .log-line span.cmd:hover { filter: brightness(1.2); }
-    .log-line span.cmd::after { content: 'Click to Copy'; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; }
+    .log-line span.cmd::after { content: '点击复制'; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; }
     .log-line span.cmd:hover::after { opacity: 1; }
     .log-line span.info { color: #818cf8; }
     .log-line span.success { color: #34d399; }
     .log-line span.highlight { background: rgba(180,41,249,0.2); padding: 2px 6px; border-radius: 4px; }
-
+    
     /* BENTO GRID (FEATURES) */
     .bento-section { padding: 160px 0; }
     .section-title {
@@ -237,7 +230,10 @@
     .bento-card:hover::before { opacity: 1; }
     .bento-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-4px); }
     .bento-content { position: relative; z-index: 1; }
-    .b-icon { font-size: 2rem; margin-bottom: 16px; display: inline-block; }
+    
+    /* Elegant Phosphor Icons */
+    .b-icon { font-size: 2.2rem; margin-bottom: 20px; display: inline-block; color: var(--accent-glow); opacity: 0.9; }
+    
     .span-2 { grid-column: span 2; }
     .span-row-2 { grid-row: span 2; }
     .bento-card h3 { font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; }
@@ -271,6 +267,7 @@
       border-color: var(--accent-glow); color: var(--text);
       box-shadow: 0 0 20px rgba(46, 242, 255, 0.4);
     }
+    .t-icon { font-size: 1.4rem; color: var(--accent-glow); display: none; }
     .t-step h4 { margin-bottom: 8px; font-weight: 600; }
     .t-step p { font-size: 0.85rem; color: var(--muted); }
 
@@ -281,7 +278,8 @@
       background: rgba(0,0,0,0.5);
     }
     .footer-text { color: var(--muted); font-size: 0.9rem; }
-    .footer-text a { color: var(--text); text-decoration: none; font-weight: 500; }
+    .footer-text a { color: var(--text); text-decoration: none; font-weight: 500; transition: color 0.2s;}
+    .footer-text a:hover { color: var(--accent-glow); }
 
     @media (max-width: 900px) {
       .bento-grid { grid-template-columns: 1fr; grid-auto-rows: minmax(auto, 280px); }
@@ -303,19 +301,19 @@
 
   <nav>
     <div class="brand">VRC/AU</div>
-    <a href="#features" class="nav-link">Features</a>
-    <a href="#how" class="nav-link">How it works</a>
-    <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="nav-link">GitHub</a>
+    <a href="#features" class="nav-link"><i class="ph-light ph-squares-four"></i> 核心特性</a>
+    <a href="#how" class="nav-link"><i class="ph-light ph-git-merge"></i> 运行原理</a>
+    <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="nav-link"><i class="ph-light ph-github-logo"></i> 源码库</a>
   </nav>
 
   <section class="hero container">
-    <div class="pill">Automation Redefined</div>
-    <h1>Batch Upload.<br/><span>Zero Intervention.</span></h1>
-    <p>A sophisticated orchestration pipeline using Python & Unity to extract, provision, build, and publish infinite VRChat Avatars silently.</p>
+    <div class="pill"><i class="ph-fill ph-code" style="margin-right:2px"></i> 自动化定义重构</div>
+    <h1>批量上传模型。<br/><span>无需人工干预。</span></h1>
+    <p>基于 Python 和 Unity 深度编排流水线，从多层压缩包中全自动解压、置备环境、构建并静默推送海量 VRChat Avatar。</p>
     
     <div class="btn-group">
-      <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="btn btn-primary">Clone Repository</a>
-      <a href="#features" class="btn btn-outline">Explore Pipeline</a>
+      <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="btn btn-primary"><i class="ph-bold ph-download-simple"></i> 部署项目</a>
+      <a href="#features" class="btn btn-outline"><i class="ph-bold ph-compass"></i> 了解流水线</a>
     </div>
 
     <div class="terminal-container">
@@ -325,19 +323,19 @@
         </div>
         <div class="t-body">
           <div class="log-line">> <span class="cmd">python main.py batch --dir "D:\Model" -y</span></div>
-          <div class="log-line" style="opacity:0.5;">[VRC-AU] Initializing orchestrated environment...</div>
-          <div class="log-line"><span class="info">[*]</span> Discovered 60 packages. Validating signatures...</div>
-          <div class="log-line"><span class="success">[✓]</span> Virtual project instantiated (vrc-get 1.9.1)</div>
+          <div class="log-line" style="opacity:0.5;">[VRC-AU] 初始化自动化沙盒环境...</div>
+          <div class="log-line"><span class="info">[*]</span> 检索到 60 个压缩包，正在验证数据指纹...</div>
+          <div class="log-line"><span class="success">[✓]</span> 虚拟工程构建完毕 (基于 vrc-get 1.9.1)</div>
           <br>
-          <div class="log-line"><span style="color:#fbbf24">=== Task [1/60]: Airi ===</span></div>
-          <div class="log-line">Injecting C# hooks... Bypass modals <span class="success">OK</span></div>
-          <div class="log-line">Removing author Blueprint ID <span class="highlight">avtr_e7...8ba</span></div>
-          <div class="log-line">Compiling AssetBundle (Windows)...</div>
-          <div class="log-line"><span class="success">[AutoUploader] Build Complete.</span> API published.</div>
+          <div class="log-line"><span style="color:#fbbf24">=== Task [1/60]: Airi 爱莉 ===</span></div>
+          <div class="log-line">正在注入 C# 探针... 绕过版权确认锁弹窗 <span class="success">成功</span></div>
+          <div class="log-line">剥离并净空原作者的只读 Blueprint ID <span class="highlight">avtr_e7...8ba</span></div>
+          <div class="log-line">编译原生 AssetBundle (Windows 架构)...</div>
+          <div class="log-line"><span class="success">[AutoUploader] 构建完成。</span> 接口推送抵达 VRChat。</div>
           <br>
           <div class="log-line"><span style="color:#fbbf24">=== Task [2/60]: Azuki ===</span></div>
-          <div class="log-line">Cleaning ephemeral Scene state...</div>
-          <div class="log-line" style="animation: blink 1s infinite alternate;">Importing package: Azuki.unitypackage_</div>
+          <div class="log-line">正在清除残留内存 Scene 数据状态...</div>
+          <div class="log-line" style="animation: blink 1s infinite alternate;">导入包裹: Azuki.unitypackage_</div>
         </div>
       </div>
     </div>
@@ -346,24 +344,24 @@
   <style> @keyframes blink { from { opacity: 1; } to { opacity: 0; } } </style>
 
   <section id="features" class="bento-section container">
-    <h2 class="section-title">Architectural Brilliance</h2>
+    <h2 class="section-title">架构级技术特性</h2>
     <div class="bento-grid">
       
       <!-- Card 1 -->
       <div class="bento-card span-2 card-gradient">
         <div class="bento-content">
-          <div class="b-icon">🧠</div>
-          <h3>Reflection-based Heuristics</h3>
-          <p>We bypass Unity's internal UI Toolkit abstractions. No more being blocked by "Copyright Agreements". The system deep-probes memory to invoke internal SDK delegates autonomously.</p>
+          <div class="b-icon"><i class="ph-light ph-cpu"></i></div>
+          <h3>内存级反射试探</h3>
+          <p>越过 Unity 内部 UI Toolkit 阻碍。免除“版权声明”界面拦截，系统直接进行内存底层探针注入，强制唤醒 SDK 内部回调整体越权。</p>
         </div>
       </div>
 
       <!-- Card 2 -->
       <div class="bento-card">
         <div class="bento-content">
-          <div class="b-icon">📦</div>
-          <h3>Smart Extraction</h3>
-          <p>Scans multi-layered .rar/.zip/.7z archives. Heuristically ignores generic Shader packages, hunting down the true Avatar package.</p>
+          <div class="b-icon"><i class="ph-light ph-magnifying-glass"></i></div>
+          <h3>智能分拣隔离</h3>
+          <p>直接吞吐多层复杂嵌套的 .rar/.zip/.7z 压缩包。启发式过滤着色器等干扰插件，利用特征码直取模型本体包进行单向提取。</p>
         </div>
       </div>
 
@@ -372,36 +370,36 @@
         <div class="bento-content card-terminal">
           // upload_results.json<br/><br/>
           {<br/>
-          &nbsp;&nbsp;"name": "Airi",<br/>
+          &nbsp;&nbsp;"name": "Airi 爱莉",<br/>
           &nbsp;&nbsp;"status": "success",<br/>
           &nbsp;&nbsp;"blueprintId": "avtr_83x..."<br/>
           },<br/>
           {<br/>
           &nbsp;&nbsp;"name": "BrokenPkg",<br/>
-          &nbsp;&nbsp;"error": "Descriptor Missing"<br/>
+          &nbsp;&nbsp;"error": "Missing Descriptor"<br/>
           }<br/>
         </div>
         <div class="bento-content" style="margin-top:auto; padding-top:20px; border-top: 1px solid rgba(255,255,255,0.1)">
-          <h3>Deterministic Logs</h3>
-          <p>Absolute tracking. Every avatar gets a blueprint ID logged safely to disk.</p>
+          <h3>确定性物理溯源</h3>
+          <p>绝对追踪上传结果。每个成功上传发配的模型都将拥有绑定的 Blueprint ID 持久日志。</p>
         </div>
       </div>
 
       <!-- Card 4 -->
       <div class="bento-card">
         <div class="bento-content">
-          <div class="b-icon">🔒</div>
-          <h3>Ephemeral Isolation</h3>
-          <p>Instantiates a fresh Unity environment via vrc-get. Uploads the model, nukes the assets. Zero asset colliding.</p>
+          <div class="b-icon"><i class="ph-light ph-shield-check"></i></div>
+          <h3>一次性容器沙盒</h3>
+          <p>通过 vrc-get 创建完全无杂质的 Unity 基底。单模型发布完成后即刻销毁全部资产链条与缓存，彻底斩断模型间的多余引用错乱。</p>
         </div>
       </div>
 
       <!-- Card 5 -->
       <div class="bento-card">
         <div class="bento-content">
-          <div class="b-icon">🎨</div>
-          <h3>Dependency Magic</h3>
-          <p>Pre-installs lilToon & Modular Avatar. Banishes the "Pink Texture" nightmare forever before Unity even opens.</p>
+          <div class="b-icon"><i class="ph-light ph-magic-wand"></i></div>
+          <h3>前置依赖魔术</h3>
+          <p>从代码引擎底层提前挂载并注入 lilToon 与 Modular Avatar 相关依赖。在 Unity GUI启动之前，即在物理层面阻止了“粉红材质丢失”崩溃事故。</p>
         </div>
       </div>
 
@@ -409,34 +407,34 @@
   </section>
 
   <section id="how" class="workflow-section container">
-    <h2 class="section-title">The Auto-Upload Pipeline</h2>
+    <h2 class="section-title">流引擎编排原理</h2>
     <div class="timeline">
       <div class="t-step">
-        <div class="t-circle">01</div>
-        <h4>Discovery</h4>
-        <p>Crawler unpacks complex archives and filters out decoy .unitypackage files.</p>
+        <div class="t-circle"><i class="ph-light ph-folder-open"></i></div>
+        <h4>勘察剥离</h4>
+        <p>引擎爬虫向下穿透包裹目录，规避所有的诱饵 UnityPackage 文件进行实体模型采集。</p>
       </div>
       <div class="t-step">
-        <div class="t-circle">02</div>
-        <h4>Provision</h4>
-        <p>VPM CLI scaffolds a headless-ready environment with VRCSDK3.</p>
+        <div class="t-circle"><i class="ph-light ph-wrench"></i></div>
+        <h4>虚拟配给</h4>
+        <p>调用 VPM 核心逻辑为系统凭空构建并下行配备完整可用、支持无头的 VRCSDK3 沙盒工程。</p>
       </div>
       <div class="t-step">
-        <div class="t-circle">03</div>
-        <h4>Inject</h4>
-        <p>Custom C# hooks are written directly into the Editor runtime context.</p>
+        <div class="t-circle"><i class="ph-light ph-syringe"></i></div>
+        <h4>高权注入</h4>
+        <p>直接绕过验证，将包含系统挂机宏、模态阻断器的 C# Hook 重写代码注入进工作站 Editor 层。</p>
       </div>
       <div class="t-step">
-        <div class="t-circle">04</div>
-        <h4>Publish</h4>
-        <p>Unity launches in GUI mode. Modals are slain. AssetBundles compile and ship.</p>
+        <div class="t-circle"><i class="ph-light ph-paper-plane-tilt"></i></div>
+        <h4>重现发端</h4>
+        <p>携带强参唤起 Unity GUI，在被压制的界面下静默连结后台进行编译压包和数据传输。</p>
       </div>
     </div>
   </section>
 
   <footer>
     <div class="container">
-      <p class="footer-text">Built for VRChat creators. Architecture open-sourced on <a href="https://github.com/dwgx/VRC-Auto-Uploader">GitHub</a>.</p>
+      <p class="footer-text">Built for engineering perfection. View core architecture on <a href="https://github.com/dwgx/VRC-Auto-Uploader"><i class="ph-light ph-github-logo"></i> GitHub</a>.</p>
     </div>
   </footer>
 
@@ -472,14 +470,14 @@
     terminalWrap.addEventListener('mousemove', (e) => {
       isHovering = true;
       const rect = terminalWrap.getBoundingClientRect();
-      const x = e.clientX - rect.left; // x position within the element
-      const y = e.clientY - rect.top; // y position within the element
+      const x = e.clientX - rect.left; 
+      const y = e.clientY - rect.top; 
       
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
-      const rotateX = ((y - centerY) / centerY) * -10; // max 10 deg
-      const rotateY = ((x - centerX) / centerX) * 10; // max 10 deg
+      const rotateX = ((y - centerY) / centerY) * -12; 
+      const rotateY = ((x - centerX) / centerX) * 12; 
       
       terminal.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
     });
@@ -496,7 +494,7 @@
         navigator.clipboard.writeText('python main.py batch --dir "D:\\Model" -y');
         cmdSpan.style.color = '#34d399';
         const style = document.createElement('style');
-        style.innerHTML = '.log-line span.cmd::after { content: "Copied!" !important; background: #34d399 !important; }';
+        style.innerHTML = '.log-line span.cmd::after { content: "复制成功!" !important; background: #34d399 !important; }';
         document.head.appendChild(style);
         setTimeout(() => {
           cmdSpan.style.color = '';
