@@ -28,6 +28,7 @@ if sys.stdout.encoding != 'utf-8':
 
 from config import Config
 from extractor import scan_model_directory, extract_model_dir
+from sanitizer import sanitize_package
 
 
 # ─── Constants ───────────────────────────────────────────────────────────────
@@ -108,11 +109,22 @@ def provision_project(cfg: Config) -> str:
     print("║   Phase 1: Environment Provisioning      ║")
     print("╚══════════════════════════════════════════╝\n")
 
+    # Backup existing upload results before deep-cleaning the project directory
+    result_file = os.path.join(project_path, "upload_results.json")
+    backup_file = os.path.join(SCRIPT_DIR, "upload_results_backup.json")
+    if os.path.isfile(result_file):
+        shutil.copy2(result_file, backup_file)
+
     # Clean up previous project
     if os.path.isdir(project_path):
         print("[1/3] Cleaning old temp project...")
         shutil.rmtree(project_path, ignore_errors=True)
         time.sleep(1)
+
+    os.makedirs(project_path, exist_ok=True)
+    # Restore upload results to ensure progress continuity
+    if os.path.isfile(backup_file):
+        shutil.copy2(backup_file, os.path.join(project_path, "upload_results.json"))
 
     # Create empty Unity project
     print("[1/3] Creating empty Unity project (this takes ~1 minute)...")
@@ -331,12 +343,21 @@ def cmd_upload(args):
     # Provision project
     project_path = provision_project(cfg)
 
+    # Sanitize package
+    print("[*] Sanitizing package (stripping potentially hazardous C# scripts)...")
+    sanitized_dir = os.path.join(project_path, "SanitizedPackages")
+    os.makedirs(sanitized_dir, exist_ok=True)
+    safe_path = os.path.join(sanitized_dir, os.path.basename(package_path))
+    removed = sanitize_package(package_path, safe_path)
+    if removed > 0:
+        print(f"       ⚠ Removed {removed} hazardous files from package.")
+
     # Prepare task
     print("\n╔══════════════════════════════════════════╗")
     print("║   Phase 2: Preparing Upload Task         ║")
     print("╚══════════════════════════════════════════╝\n")
 
-    prepare_task_file(project_path, [{"name": name, "package": package_path}])
+    prepare_task_file(project_path, [{"name": name, "package": safe_path}])
 
     # Launch Unity
     success = launch_unity_upload(cfg, project_path)
@@ -385,6 +406,17 @@ def cmd_batch(args):
 
     # Provision
     project_path = provision_project(cfg)
+
+    # Sanitize packages
+    print("\n[*] Sanitizing packages (stripping potentially hazardous C# scripts)...")
+    sanitized_dir = os.path.join(project_path, "SanitizedPackages")
+    os.makedirs(sanitized_dir, exist_ok=True)
+    for pkg in packages:
+        safe_path = os.path.join(sanitized_dir, os.path.basename(pkg["package"]))
+        removed = sanitize_package(pkg["package"], safe_path)
+        pkg["package"] = safe_path
+        if removed > 0:
+            print(f"       ⚠ Removed {removed} hazardous files from {pkg['name']}")
 
     # Prepare tasks
     print("\n╔══════════════════════════════════════════╗")
