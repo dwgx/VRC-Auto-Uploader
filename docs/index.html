@@ -4,28 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="VRC-Auto-Uploader — 全自动 VRChat 模型批量上传流水线。" />
-  <title>VRC Auto Uploader / 绝对自动化</title>
+  <title>VRC Auto Uploader / 工业级自动化</title>
 
   <!-- Google Fonts & Phosphor Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
   <style>
     :root {
-      --bg: #030305;
-      --surface: rgba(255, 255, 255, 0.02);
-      --surface-hover: rgba(255, 255, 255, 0.05);
-      --border: rgba(255, 255, 255, 0.05);
-      --border-glow: rgba(138, 43, 226, 0.3);
-      --text: #ffffff;
-      --muted: #a3a3a3;
-      --accent: #b429f9;
-      --accent-glow: #2ef2ff;
-      --accent-gradient: linear-gradient(135deg, #b429f9 0%, #2ef2ff 100%);
-      --radius-lg: 24px;
-      --radius-md: 16px;
+      --bg: #000000;
+      --surface: #0a0a0a;
+      --surface-hover: #121212;
+      --border: #222222;
+      --text: #f0f0f0;
+      --muted: #888888;
+      --accent: #00e59b; /* Crisp VRC/Cyber Teal */
+      --accent-dim: rgba(0, 229, 155, 0.1);
+      --radius-lg: 16px;
+      --radius-md: 8px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,283 +37,204 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    h1, h2, h3, .brand {
-      font-family: 'Space Grotesk', sans-serif;
-    }
-
-    /* BACKGROUND EFFECTS */
-    .ambient-bg {
-      position: fixed; inset: 0;
-      z-index: -1; pointer-events: none;
-      overflow: hidden;
-      background: radial-gradient(circle at 50% 0%, rgba(30,20,50,0.5) 0%, transparent 60%);
-    }
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      animation: float 20s infinite alternate ease-in-out;
-      opacity: 0.4;
-    }
-    .orb-1 { width: 600px; height: 600px; background: #b429f9; top: -10%; left: -10%; }
-    .orb-2 { width: 500px; height: 500px; background: #2ef2ff; bottom: -10%; right: -5%; animation-delay: -5s; }
-
-    @keyframes float {
-      0% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(100px, 50px) scale(1.1); }
-      100% { transform: translate(-50px, 100px) scale(0.9); }
-    }
-
-    /* GRID PATTERN */
+    /* GRID PATTERN (Subtle) */
     .grid-overlay {
       position: fixed; inset: 0; z-index: -1; pointer-events: none;
       background-image: 
-        linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+        linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: linear-gradient(to bottom, black 10%, transparent 90%);
+      -webkit-mask-image: linear-gradient(to bottom, black 10%, transparent 90%);
     }
 
     /* NAVBAR */
     nav {
-      position: fixed; top: 20px; left: 50%;
-      transform: translateX(-50%);
+      position: fixed; top: 0; left: 0; right: 0;
       z-index: 100;
-      background: rgba(10, 10, 15, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 99px;
-      padding: 12px 32px;
-      display: flex; gap: 40px; align-items: center;
-      transition: all 0.3s ease;
-      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 40px;
+      display: flex; justify-content: space-between; align-items: center;
     }
+    .brand { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.5px; }
+    .brand span { color: var(--accent); }
+    .nav-links { display: flex; gap: 32px; }
     .nav-link {
       color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
-      transition: color 0.2s; display: flex; align-items: center; gap: 6px;
+      transition: color 0.15s; display: flex; align-items: center; gap: 6px;
     }
-    .nav-link i { font-size: 1.1rem; }
     .nav-link:hover { color: var(--text); }
-    .brand { font-weight: 700; font-size: 1.1rem; background: var(--accent-gradient); -webkit-background-clip: text; color: transparent; }
-
-    @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-    @keyframes fadeUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
     /* LAYOUT COMPONENTS */
     .container {
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
       padding: 0 32px;
     }
 
     /* HERO SECTION */
     .hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      text-align: center;
-      padding-top: 100px;
+      padding: 180px 0 100px;
       position: relative;
-      animation: fadeUp 1s ease-out;
     }
-    .pill {
-      display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 99px;
-      background: rgba(46, 242, 255, 0.1); border: 1px solid rgba(46, 242, 255, 0.2);
-      color: var(--accent-glow); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 30px;
-      backdrop-filter: blur(10px);
-    }
-    .hero h1 {
-      font-size: clamp(3rem, 7vw, 6rem);
-      line-height: 1.1; letter-spacing: -2px;
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 4px;
+      background: var(--accent-dim); border: 1px solid rgba(0, 229, 155, 0.2);
+      color: var(--accent); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px;
       margin-bottom: 24px;
     }
-    .hero h1 span {
-      background: var(--accent-gradient);
-      -webkit-background-clip: text; color: transparent;
-      display: inline-block;
+    .hero h1 {
+      font-size: clamp(3rem, 6vw, 4.5rem);
+      line-height: 1.05; letter-spacing: -2px;
+      margin-bottom: 24px; font-weight: 700;
     }
     .hero p {
-      color: var(--muted); font-size: clamp(1rem, 2vw, 1.25rem);
-      max-width: 600px; margin: 0 auto 40px; text-wrap: balance;
+      color: var(--muted); font-size: 1.15rem;
+      max-width: 600px; margin-bottom: 40px; text-wrap: balance;
     }
     
-    .btn-group { display: flex; gap: 16px; justify-content: center; }
+    .btn-group { display: flex; gap: 16px; }
     .btn {
-      padding: 16px 36px; border-radius: 99px;
-      font-weight: 600; font-size: 1rem; text-decoration: none;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative; overflow: hidden;
-      display: inline-flex; align-items: center; gap: 10px;
+      padding: 12px 24px; border-radius: var(--radius-md);
+      font-weight: 600; font-size: 0.95rem; text-decoration: none;
+      transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
     }
     .btn-primary { background: var(--text); color: var(--bg); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(255,255,255,0.2); }
-    .btn-outline {
-      background: rgba(255,255,255,0.02); color: var(--text);
-      border: 1px solid var(--border); backdrop-filter: blur(10px);
-    }
-    .btn-outline:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .btn-primary:hover { background: #d0d0d0; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--surface-hover); }
 
     /* 3D TERMINAL SHOWCASE */
     .terminal-container {
       margin-top: 80px;
       perspective: 1200px;
-      width: 100%; max-width: 860px;
-      transform-style: preserve-3d;
+      width: 100%;
     }
     .terminal {
-      background: rgba(5,5,10,0.7);
-      backdrop-filter: blur(30px);
+      background: #050505;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: 0 40px 100px -20px rgba(180, 41, 249, 0.2), inset 0 0 0 1px rgba(255,255,255,0.05);
-      transform-style: preserve-3d;
-      transform: rotateX(5deg) translateY(-5px);
-      transition: transform 0.1s ease-out, box-shadow 0.3s ease;
+      border-radius: var(--radius-md);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
       overflow: hidden;
+      transform-style: preserve-3d;
       will-change: transform;
-      text-align: left;
-    }
-    .terminal-container:hover .terminal {
-      box-shadow: 0 50px 120px -20px rgba(46, 242, 255, 0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
-      transition: box-shadow 0.3s ease;
     }
     .t-header {
-      padding: 16px 24px; border-bottom: 1px solid var(--border);
-      display: flex; gap: 8px; align-items: center;
-      background: rgba(0,0,0,0.3);
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      display: flex; gap: 8px; align-items: center; background: #0a0a0a;
     }
     .t-dot { width: 10px; height: 10px; border-radius: 50%; background: #333; }
     .t-dot.r { background: #ff5f56; } .t-dot.y { background: #ffbd2e; } .t-dot.g { background: #27c93f; }
-    .t-body {
-      padding: 30px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
-      color: #e2e8f0; line-height: 2; height: 360px; overflow: hidden; position: relative;
-    }
-    .t-body::after {
-      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
-      background: linear-gradient(to top, rgba(5,5,10,1), transparent); pointer-events: none;
-    }
-    .log-line span.cmd { color: var(--accent-glow); font-weight: 700; cursor: pointer; position: relative; }
-    .log-line span.cmd:hover { filter: brightness(1.2); }
-    .log-line span.cmd::after { content: '点击复制'; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; }
+    .t-body { padding: 24px 20px; color: #d4d4d4; line-height: 1.8; position: relative; }
+    .log-line span.cmd { color: var(--accent); font-weight: 700; cursor: pointer; position: relative; transition: opacity 0.2s; }
+    .log-line span.cmd:hover { opacity: 0.8; }
+    .log-line span.cmd::after { content: '点击复制'; position: absolute; top: -28px; left: 0; background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-family: 'Inter', sans-serif; opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; }
     .log-line span.cmd:hover::after { opacity: 1; }
-    .log-line span.info { color: #818cf8; }
-    .log-line span.success { color: #34d399; }
-    .log-line span.highlight { background: rgba(180,41,249,0.2); padding: 2px 6px; border-radius: 4px; }
+    .log-line span.info { color: #888; }
+    .log-line span.success { color: #fff; }
+    .log-line span.highlight { background: var(--border); padding: 0 4px; border-radius: 4px; }
     
+    /* SECTION HEADERS */
+    section { padding: 100px 0; border-top: 1px solid var(--border); }
+    .section-title { font-size: 2rem; font-weight: 700; letter-spacing: -1px; margin-bottom: 16px; }
+    .section-desc { color: var(--muted); font-size: 1.05rem; margin-bottom: 48px; max-width: 600px; }
+
     /* BENTO GRID (FEATURES) */
-    .bento-section { padding: 160px 0; }
-    .section-title {
-      font-size: clamp(2rem, 4vw, 3.5rem); text-align: center; margin-bottom: 60px;
-      letter-spacing: -1px;
-    }
     .bento-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 240px; gap: 24px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
     }
     .bento-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-lg); padding: 32px;
-      position: relative; overflow: hidden;
-      display: flex; flex-direction: column; justify-content: flex-end;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; justify-content: space-between;
     }
-    .bento-card::before {
-      content:''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.06), transparent 40%);
-      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 0;
-    }
-    .bento-card:hover::before { opacity: 1; }
-    .bento-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-4px); }
-    .bento-content { position: relative; z-index: 1; }
-    
-    /* Elegant Phosphor Icons */
-    .b-icon { font-size: 2.2rem; margin-bottom: 20px; display: inline-block; color: var(--accent-glow); opacity: 0.9; }
-    
-    .span-2 { grid-column: span 2; }
-    .span-row-2 { grid-row: span 2; }
-    .bento-card h3 { font-size: 1.5rem; margin-bottom: 8px; font-weight: 600; }
+    .b-icon { font-size: 2rem; margin-bottom: 24px; color: var(--text); }
+    .bento-card h3 { font-size: 1.25rem; margin-bottom: 12px; font-weight: 600; }
     .bento-card p { color: var(--muted); font-size: 0.95rem; }
-    
-    /* SPECIFIC BENTO CONTENT STYLES */
-    .card-gradient { background: linear-gradient(135deg, rgba(180,41,249,0.1), rgba(46,242,255,0.05)); }
-    .card-terminal { font-family: 'JetBrains Mono'; color: #34d399; font-size: 0.85rem; padding-bottom: 40px; }
+    .card-full { grid-column: span 2; display: flex; flex-direction: row; gap: 40px; align-items: center; }
+    .card-full .b-content { flex: 1; }
+    .json-block {
+      flex: 1; background: #000; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #a1a1aa;
+    }
+    .json-key { color: var(--accent); } .json-val { color: #f4f4f5; }
+
+    /* QUICKSTART */
+    .qs-step { margin-bottom: 32px; }
+    .qs-step h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .qs-step h4 i { color: var(--accent); }
+    .qs-step p { color: var(--muted); font-size: 0.95rem; margin-bottom: 12px; }
+    .code-block {
+      background: var(--surface); border: 1px solid var(--border); border-left: 2px solid var(--accent);
+      border-radius: var(--radius-md); padding: 16px 20px; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem; color: #e5e5e5; overflow-x: auto; position: relative;
+    }
 
     /* WORKFLOW */
-    .workflow-section { padding: 80px 0 160px; }
-    .timeline {
-      display: flex; justify-content: space-between; position: relative;
-      margin-top: 80px; max-width: 900px; margin-inline: auto;
+    .flow-chain {
+      display: flex; flex-direction: column; gap: 0;
+      border-left: 1px solid var(--border); margin-left: 20px; padding-left: 32px;
     }
-    .timeline::before {
-      content:''; position: absolute; top: 24px; left: 0; right: 0; height: 1px;
-      background: var(--border); z-index: 0;
+    .flow-node { position: relative; padding-bottom: 40px; }
+    .flow-node:last-child { padding-bottom: 0; }
+    .flow-node::before {
+      content: ''; position: absolute; left: -38px; top: 0; width: 11px; height: 11px;
+      background: var(--bg); border: 2px solid var(--muted); border-radius: 50%;
     }
-    .t-step {
-      position: relative; z-index: 1; text-align: center; width: 180px;
-    }
-    .t-circle {
-      width: 48px; height: 48px; border-radius: 50%;
-      background: var(--bg); border: 2px solid var(--border);
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 24px; font-weight: 700; color: var(--muted);
-      transition: all 0.3s;
-    }
-    .t-step:hover .t-circle {
-      border-color: var(--accent-glow); color: var(--text);
-      box-shadow: 0 0 20px rgba(46, 242, 255, 0.4);
-    }
-    .t-icon { font-size: 1.4rem; color: var(--accent-glow); display: none; }
-    .t-step h4 { margin-bottom: 8px; font-weight: 600; }
-    .t-step p { font-size: 0.85rem; color: var(--muted); }
+    .flow-node.active::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+    .flow-node h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+    .flow-node p { color: var(--muted); font-size: 0.95rem; }
+
+    /* FAQ */
+    .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-item h4 { font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; }
+    .faq-item p { color: var(--muted); font-size: 0.95rem; }
 
     /* FOOTER */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 60px 0; text-align: center;
-      background: rgba(0,0,0,0.5);
-    }
-    .footer-text { color: var(--muted); font-size: 0.9rem; }
-    .footer-text a { color: var(--text); text-decoration: none; font-weight: 500; transition: color 0.2s;}
-    .footer-text a:hover { color: var(--accent-glow); }
+    footer { padding: 40px 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+    footer a { color: var(--text); text-decoration: none; font-weight: 500; transition: color 0.15s;}
+    footer a:hover { color: var(--accent); }
 
-    @media (max-width: 900px) {
-      .bento-grid { grid-template-columns: 1fr; grid-auto-rows: minmax(auto, 280px); }
-      .span-2, .span-row-2 { grid-column: span 1; grid-row: span 1; }
-      .timeline { flex-direction: column; gap: 40px; align-items: flex-start; padding-left: 24px; }
-      .timeline::before { top: 0; bottom: 0; left: 48px; width: 1px; height: auto; }
-      .t-step { display: flex; text-align: left; width: 100%; gap: 24px; }
-      .t-circle { margin: 0; flex-shrink: 0; }
+    @media (max-width: 768px) {
+      .bento-grid { grid-template-columns: 1fr; }
+      .card-full { grid-column: span 1; flex-direction: column; }
+      .hero { padding: 120px 0 80px; }
+      nav { padding: 16px 24px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="ambient-bg">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-  </div>
   <div class="grid-overlay"></div>
 
   <nav>
-    <div class="brand">VRC/AU</div>
-    <a href="#features" class="nav-link"><i class="ph-light ph-squares-four"></i> 核心特性</a>
-    <a href="#how" class="nav-link"><i class="ph-light ph-git-merge"></i> 运行原理</a>
-    <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="nav-link"><i class="ph-light ph-github-logo"></i> 源码库</a>
+    <div class="brand">VRC/AU <span>.</span></div>
+    <div class="nav-links">
+      <a href="#features" class="nav-link">架构特性</a>
+      <a href="#quickstart" class="nav-link">部署指南</a>
+      <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="nav-link">
+        <i class="ph-bold ph-github-logo"></i> 源码库
+      </a>
+    </div>
   </nav>
 
   <section class="hero container">
-    <div class="pill"><i class="ph-fill ph-code" style="margin-right:2px"></i> 自动化定义重构</div>
-    <h1>批量上传模型。<br/><span>无需人工干预。</span></h1>
-    <p>基于 Python 和 Unity 深度编排流水线，从多层压缩包中全自动解压、置备环境、构建并静默推送海量 VRChat Avatar。</p>
+    <div class="badge"><i class="ph-bold ph-terminal"></i> VRC-AU v1.0.0</div>
+    <h1>工业级全自动<br/>模型分发系统</h1>
+    <p>摒弃低效的手工查验。本系统基于 Python 与 C# 底层探针技术，从多层嵌套压缩包中直取核心模块，无缝建立沙盒环境并静默推送海量 VRChat 模型资产。</p>
     
     <div class="btn-group">
-      <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="btn btn-primary"><i class="ph-bold ph-download-simple"></i> 部署项目</a>
-      <a href="#features" class="btn btn-outline"><i class="ph-bold ph-compass"></i> 了解流水线</a>
+      <a href="#quickstart" class="btn btn-primary">部署指南</a>
+      <a href="https://github.com/dwgx/VRC-Auto-Uploader" class="btn btn-outline"><i class="ph-bold ph-github-logo"></i> 查看源码</a>
     </div>
 
+    <!-- TERMINAL: NO BOUNCING, JUST MOUSE PARALLAX -->
     <div class="terminal-container">
       <div class="terminal">
         <div class="t-header">
@@ -323,152 +242,155 @@
         </div>
         <div class="t-body">
           <div class="log-line">> <span class="cmd">python main.py batch --dir "D:\Model" -y</span></div>
-          <div class="log-line" style="opacity:0.5;">[VRC-AU] 初始化自动化沙盒环境...</div>
-          <div class="log-line"><span class="info">[*]</span> 检索到 60 个压缩包，正在验证数据指纹...</div>
-          <div class="log-line"><span class="success">[✓]</span> 虚拟工程构建完毕 (基于 vrc-get 1.9.1)</div>
+          <div class="log-line"><span class="info">[*] Initializing environment protocols...</span></div>
+          <div class="log-line"><span class="info">[*] Discovered 60 archives. Verifying manifest signatures...</span></div>
+          <div class="log-line"><span class="success">[✓] Virtual VPM CLI instantiated successfully.</span></div>
           <br>
-          <div class="log-line"><span style="color:#fbbf24">=== Task [1/60]: Airi 爱莉 ===</span></div>
-          <div class="log-line">正在注入 C# 探针... 绕过版权确认锁弹窗 <span class="success">成功</span></div>
-          <div class="log-line">剥离并净空原作者的只读 Blueprint ID <span class="highlight">avtr_e7...8ba</span></div>
-          <div class="log-line">编译原生 AssetBundle (Windows 架构)...</div>
-          <div class="log-line"><span class="success">[AutoUploader] 构建完成。</span> 接口推送抵达 VRChat。</div>
+          <div class="log-line"><span style="color:#aaa">=== Pipeline Exec: Airi ===</span></div>
+          <div class="log-line">Injecting memory hooks... SDK modal circumvented.</div>
+          <div class="log-line">Stripping read-only Author ID: <span class="highlight">avtr_e728</span></div>
+          <div class="log-line">Initiating AssetBundle compilation daemon...</div>
+          <div class="log-line"><span class="success">[AutoUploader] Build Complete. Data transmitted.</span></div>
           <br>
-          <div class="log-line"><span style="color:#fbbf24">=== Task [2/60]: Azuki ===</span></div>
-          <div class="log-line">正在清除残留内存 Scene 数据状态...</div>
-          <div class="log-line" style="animation: blink 1s infinite alternate;">导入包裹: Azuki.unitypackage_</div>
+          <div class="log-line"><span style="color:#aaa">=== Pipeline Exec: Azuki ===</span></div>
+          <div class="log-line">Purging stale internal Scene states...</div>
+          <div class="log-line">Importing package: Azuki.unitypackage_</div>
         </div>
       </div>
     </div>
   </section>
 
-  <style> @keyframes blink { from { opacity: 1; } to { opacity: 0; } } </style>
-
-  <section id="features" class="bento-section container">
-    <h2 class="section-title">架构级技术特性</h2>
+  <!-- FEATURES -->
+  <section id="features" class="container">
+    <h2 class="section-title">核心系统特性</h2>
+    <p class="section-desc">抛弃表层自动点击脚本的脆弱性。系统直接深入 Unity Memory 层级，重构了自动化发布的工作流闭环。</p>
+    
     <div class="bento-grid">
-      
-      <!-- Card 1 -->
-      <div class="bento-card span-2 card-gradient">
-        <div class="bento-content">
+      <!-- Full Width Card -->
+      <div class="bento-card card-full">
+        <div class="b-content">
           <div class="b-icon"><i class="ph-light ph-cpu"></i></div>
           <h3>内存级反射试探</h3>
-          <p>越过 Unity 内部 UI Toolkit 阻碍。免除“版权声明”界面拦截，系统直接进行内存底层探针注入，强制唤醒 SDK 内部回调整体越权。</p>
+          <p>越过 Unity 内部 UI Toolkit 渲染树阻碍。免除前端“版权声明”拦截，系统执行深层反射探针注入，强制唤醒 SDK 内部原生回调逻辑，从根本上解决阻塞问题。</p>
+        </div>
+        <div class="json-block">
+          <div><span class="json-key">var</span> method = <span class="json-key">typeof</span>(Clickable).GetMethod(</div>
+          <div>&nbsp;&nbsp;<span class="json-val">"Invoke"</span>, BindingFlags.NonPublic);</div>
+          <div><br></div>
+          <div><span class="json-key">if</span> (method != <span class="json-key">null</span>) {</div>
+          <div>&nbsp;&nbsp;method.Invoke(btn, <span class="json-val">args</span>);</div>
+          <div>&nbsp;&nbsp;Log(<span class="json-val">"Modal lock bypassed."</span>);</div>
+          <div>}</div>
         </div>
       </div>
 
-      <!-- Card 2 -->
+      <!-- Half Card 1 -->
       <div class="bento-card">
-        <div class="bento-content">
-          <div class="b-icon"><i class="ph-light ph-magnifying-glass"></i></div>
-          <h3>智能分拣隔离</h3>
-          <p>直接吞吐多层复杂嵌套的 .rar/.zip/.7z 压缩包。启发式过滤着色器等干扰插件，利用特征码直取模型本体包进行单向提取。</p>
-        </div>
+        <div class="b-icon"><i class="ph-light ph-magnifying-glass"></i></div>
+        <h3>智能启发式解包</h3>
+        <p>支持原生下钻至多层嵌套的 <code>.rar/.zip/.7z</code> 压缩包。启发式正则过滤混淆型着色器插件包，精准锁定模型主干执行单向物理提取。</p>
       </div>
 
-      <!-- Card 3 -->
-      <div class="bento-card span-row-2">
-        <div class="bento-content card-terminal">
-          // upload_results.json<br/><br/>
-          {<br/>
-          &nbsp;&nbsp;"name": "Airi 爱莉",<br/>
-          &nbsp;&nbsp;"status": "success",<br/>
-          &nbsp;&nbsp;"blueprintId": "avtr_83x..."<br/>
-          },<br/>
-          {<br/>
-          &nbsp;&nbsp;"name": "BrokenPkg",<br/>
-          &nbsp;&nbsp;"error": "Missing Descriptor"<br/>
-          }<br/>
-        </div>
-        <div class="bento-content" style="margin-top:auto; padding-top:20px; border-top: 1px solid rgba(255,255,255,0.1)">
-          <h3>确定性物理溯源</h3>
-          <p>绝对追踪上传结果。每个成功上传发配的模型都将拥有绑定的 Blueprint ID 持久日志。</p>
-        </div>
-      </div>
-
-      <!-- Card 4 -->
+      <!-- Half Card 2 -->
       <div class="bento-card">
-        <div class="bento-content">
-          <div class="b-icon"><i class="ph-light ph-shield-check"></i></div>
-          <h3>一次性容器沙盒</h3>
-          <p>通过 vrc-get 创建完全无杂质的 Unity 基底。单模型发布完成后即刻销毁全部资产链条与缓存，彻底斩断模型间的多余引用错乱。</p>
-        </div>
+        <div class="b-icon"><i class="ph-light ph-shield-check"></i></div>
+        <h3>一次性无状态沙盒</h3>
+        <p>基于 vrc-get 创建绝对纯洁的 Unity 工作区。每次运行完毕即彻底抹杀暂存文件，避免多模型混传引发的关键性资产覆盖与冲突。</p>
       </div>
-
-      <!-- Card 5 -->
+      
+      <!-- Half Card 3 -->
       <div class="bento-card">
-        <div class="bento-content">
-          <div class="b-icon"><i class="ph-light ph-magic-wand"></i></div>
-          <h3>前置依赖魔术</h3>
-          <p>从代码引擎底层提前挂载并注入 lilToon 与 Modular Avatar 相关依赖。在 Unity GUI启动之前，即在物理层面阻止了“粉红材质丢失”崩溃事故。</p>
-        </div>
+        <div class="b-icon"><i class="ph-light ph-magic-wand"></i></div>
+        <h3>基底依赖预铺设</h3>
+        <p>在引擎完全挂载之前，系统级前置灌入最新的 `lilToon` 与 `Modular Avatar` 框架，在物理层面灭绝任何由于依赖缺失导致的“粉红材质”灾难。</p>
       </div>
 
+      <!-- Half Card 4 -->
+      <div class="bento-card">
+        <div class="b-icon"><i class="ph-light ph-file-code"></i></div>
+        <h3>物理持久层溯源</h3>
+        <p>执行状态绝对透明。上传成功的每一份模型数据都将在 `upload_results.json` 中固化输出 <code>Blueprint ID</code>，确保状态溯源。自动跳过无法解析的异常件。</p>
+      </div>
     </div>
   </section>
 
-  <section id="how" class="workflow-section container">
-    <h2 class="section-title">流引擎编排原理</h2>
-    <div class="timeline">
-      <div class="t-step">
-        <div class="t-circle"><i class="ph-light ph-folder-open"></i></div>
-        <h4>勘察剥离</h4>
-        <p>引擎爬虫向下穿透包裹目录，规避所有的诱饵 UnityPackage 文件进行实体模型采集。</p>
+  <!-- QUICKSTART -->
+  <section id="quickstart" class="container">
+    <h2 class="section-title">快速部署</h2>
+    <p class="section-desc">只需三步即可完成本地引擎挂载和初次鉴权，随后开启无感知自动化作业。</p>
+
+    <div class="qs-step">
+      <h4><i class="ph-fill ph-check-circle"></i> 1. 克隆与初始化基建</h4>
+      <p>克隆仓库至本地环境，主控脚本将自动巡检系统级环境变量并预载入 <code>vrc-get</code> CLI。</p>
+      <div class="code-block">git clone https://github.com/dwgx/VRC-Auto-Uploader.git
+cd VRC-Auto-Uploader
+python main.py setup</div>
+    </div>
+
+    <div class="qs-step">
+      <h4><i class="ph-fill ph-check-circle"></i> 2. 沙盒首次授权</h4>
+      <p>执行一次点对点单例推送。此步骤需要你在弹出的只读界面中登入凭据。此后授权信物将持久化固化于底层。</p>
+      <div class="code-block">python main.py upload --package "D:\Model\Azuki.unitypackage"</div>
+    </div>
+
+    <div class="qs-step">
+      <h4><i class="ph-fill ph-check-circle"></i> 3. 并行工业化部署</h4>
+      <p>指向包含海量资产的根目录区，开启最高权限全自动模式，程序将自主过滤、解包与发布。</p>
+      <div class="code-block">python main.py batch --dir "D:\Model" -y</div>
+    </div>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section class="container">
+    <h2 class="section-title">工作流编排</h2>
+    <p class="section-desc">端到端的工作流引擎执行生命周期。</p>
+    <div class="flow-chain">
+      <div class="flow-node active">
+        <h4>勘查与剥离阶段 (Discovery & Extraction)</h4>
+        <p>本地巡游爬虫针对目录网进行深层穿透。无视压缩文件的表层扩展名，抽取出最吻合主模型的唯一 <code>.unitypackage</code> 实体。</p>
       </div>
-      <div class="t-step">
-        <div class="t-circle"><i class="ph-light ph-wrench"></i></div>
-        <h4>虚拟配给</h4>
-        <p>调用 VPM 核心逻辑为系统凭空构建并下行配备完整可用、支持无头的 VRCSDK3 沙盒工程。</p>
+      <div class="flow-node active">
+        <h4>容器环境置备 (Provisioning)</h4>
+        <p>系统调度底层的 VPM 命令库构建符合 2022.3 基线的独立开发模版，并严格锁死依赖版本防范意外升维。</p>
       </div>
-      <div class="t-step">
-        <div class="t-circle"><i class="ph-light ph-syringe"></i></div>
-        <h4>高权注入</h4>
-        <p>直接绕过验证，将包含系统挂机宏、模态阻断器的 C# Hook 重写代码注入进工作站 Editor 层。</p>
+      <div class="flow-node">
+        <h4>越权逻辑注入 (C# Injection)</h4>
+        <p>绕过编辑器常规载入顺序，以文件置换形式在前置 <code>Editor</code> 中写入无阻断回调逻辑与监视探针。</p>
       </div>
-      <div class="t-step">
-        <div class="t-circle"><i class="ph-light ph-paper-plane-tilt"></i></div>
-        <h4>重现发端</h4>
-        <p>携带强参唤起 Unity GUI，在被压制的界面下静默连结后台进行编译压包和数据传输。</p>
+      <div class="flow-node">
+        <h4>总线发端收尾 (Execution & Cleanup)</h4>
+        <p>强启动引擎。利用管道传输执行令，后台默默汇集 AssetBundle。并在传输达成释放响应封包后，清理战场。</p>
       </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="container">
+    <h2 class="section-title">常见技术疑问</h2>
+    <div class="faq-item">
+      <h4><i class="ph-light ph-terminal-window"></i> 为何必须利用原生 GUI 模式而不能使用 Headless Batchmode？</h4>
+      <p>VRChat V3 Builder 的关键句柄 <code>VRCSdkControlPanel.TryGetBuilder()</code> 在底层代码硬性强绑定了 <code>EditorWindow</code> UI 实体的生存期。因此，无论业务怎样抽象，只要 Unity 实例剥离了 GUI 主循环它就永远返回 Null。本系统巧妙结合了前端启动和宏屏蔽来绕过此锁。</p>
+    </div>
+    <div class="faq-item">
+      <h4><i class="ph-light ph-archive"></i> 模型兼容性覆盖到什么程度？</h4>
+      <p>原生支持打包标准 VRC Avatar 3.0 的一切资产规范。系统已默认规避了市面上最容易污染环境的第三方杂糅件，并通过动态下放 <code>lilToon</code> 防止着色器空指。遇到完全无 AvatarDescriptor 的空壳文件将精准截停，继续下一任务。</p>
     </div>
   </section>
 
   <footer>
-    <div class="container">
-      <p class="footer-text">Built for engineering perfection. View core architecture on <a href="https://github.com/dwgx/VRC-Auto-Uploader"><i class="ph-light ph-github-logo"></i> GitHub</a>.</p>
-    </div>
+    <div class="brand">VRC/AU <span>.</span></div>
+    <div>Architecture Open-Sourced on <a href="https://github.com/dwgx/VRC-Auto-Uploader">GitHub</a></div>
   </footer>
 
   <script>
-    // Smooth Mouse Glow Effect
-    document.querySelectorAll('.bento-card').forEach(card => {
-      card.addEventListener('mousemove', e => {
-        const rect = card.getBoundingClientRect();
-        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-      });
-    });
-
-    // 3D Tilt Effect for Terminal
+    // Smooth Tilt Effect for Terminal (ONLY on mousemove, NO bouncing)
     const terminalWrap = document.querySelector('.terminal-container');
     const terminal = document.querySelector('.terminal');
     
-    // Fallback float if no mouse move
-    let isHovering = false;
-    let tTime = 0;
-    
-    function animateFloat() {
-      if (!isHovering) {
-        tTime += 0.02;
-        const y = Math.sin(tTime) * 10;
-        const rx = 5 + Math.cos(tTime) * 2;
-        terminal.style.transform = `rotateX(${rx}deg) translateY(${y}px)`;
-      }
-      requestAnimationFrame(animateFloat);
-    }
-    requestAnimationFrame(animateFloat);
+    // Set static starting position explicitly so there's no bouncing animation
+    terminal.style.transform = `perspective(1200px) rotateX(2deg) translateY(0px)`;
 
     terminalWrap.addEventListener('mousemove', (e) => {
-      isHovering = true;
       const rect = terminalWrap.getBoundingClientRect();
       const x = e.clientX - rect.left; 
       const y = e.clientY - rect.top; 
@@ -476,25 +398,25 @@
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       
-      const rotateX = ((y - centerY) / centerY) * -12; 
-      const rotateY = ((x - centerX) / centerX) * 12; 
+      // Extremely subtle and tight rotation range
+      const rotateX = ((y - centerY) / centerY) * -6; 
+      const rotateY = ((x - centerX) / centerX) * 6; 
       
-      terminal.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+      terminal.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
     });
 
     terminalWrap.addEventListener('mouseleave', () => {
-      isHovering = false;
-      terminal.style.transform = `perspective(1200px) rotateX(5deg) translateY(-5px)`;
+      terminal.style.transform = `perspective(1200px) rotateX(2deg) translateY(0px)`;
     });
 
-    // Click to copy
+    // Click to copy logic
     const cmdSpan = document.querySelector('.log-line span.cmd');
     if (cmdSpan) {
       cmdSpan.addEventListener('click', () => {
         navigator.clipboard.writeText('python main.py batch --dir "D:\\Model" -y');
-        cmdSpan.style.color = '#34d399';
+        cmdSpan.style.color = '#fff';
         const style = document.createElement('style');
-        style.innerHTML = '.log-line span.cmd::after { content: "复制成功!" !important; background: #34d399 !important; }';
+        style.innerHTML = '.log-line span.cmd::after { content: "已复制到剪贴板！" !important; background: var(--accent) !important; color: #000 !important; }';
         document.head.appendChild(style);
         setTimeout(() => {
           cmdSpan.style.color = '';
