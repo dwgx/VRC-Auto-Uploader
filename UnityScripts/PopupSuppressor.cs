@@ -9,8 +9,10 @@
  */
 
 using UnityEngine;
+using UnityEngine.UIElements;
 using UnityEditor;
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace VRCAutoUploader
@@ -49,6 +51,35 @@ namespace VRCAutoUploader
                 foreach (var window in windows)
                 {
                     string title = window.titleContent?.text ?? "";
+
+                    // Quick patch: if it's the VRChat SDK window, check for UIElement modals (like Copyright agreement)
+                    if (title.Contains("VRChat SDK"))
+                    {
+                        var root = window.rootVisualElement;
+                        if (root != null)
+                        {
+                            var buttons = root.Query<UnityEngine.UIElements.Button>().ToList();
+                            foreach (var btn in buttons)
+                            {
+                                if (btn.text == "OK" && btn.worldBound.height > 0)
+                                {
+                                    Debug.Log("[AutoUploader] Auto-clicking SDK modal OK button via Reflection!");
+                                    var method = typeof(UnityEngine.UIElements.Clickable).GetMethod("Invoke", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                                    if (method != null)
+                                    {
+                                        using (var e = UnityEngine.UIElements.NavigationSubmitEvent.GetPooled())
+                                        {
+                                            method.Invoke(btn.clickable, new object[] { e });
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning("[AutoUploader] Failed to find Clickable.Invoke property!");
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Auto-close known blocking popups
                     if (title.Contains("VRChat SDK") && title.Contains("Update"))

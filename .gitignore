@@ -14,9 +14,12 @@ config.json
 tools/
 2fa.txt
 *.lock
+*.bak
 upload_tasks.json
 upload_results.json
 autouploader.log
+# Backup Unity scripts (never inject these into Unity projects)
+UnityScripts/*_backup.*
 
 # Unity
 [Ll]ibrary/

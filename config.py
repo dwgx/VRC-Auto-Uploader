@@ -160,12 +160,19 @@ class Config:
         return ok
 
     def validate(self) -> bool:
-        """Check that all required tools exist."""
+        """Check that all required tools exist. Auto-heals by re-running detect_environment()."""
+        needs_unity = not self.unity_exe or not os.path.isfile(self.unity_exe)
+        needs_vrcget = not self.vrc_get_exe or not os.path.isfile(self.vrc_get_exe)
+
+        if needs_unity or needs_vrcget:
+            print("[*] Some tools not found — running auto-detection...")
+            self.detect_environment()
+
         errors = []
         if not self.unity_exe or not os.path.isfile(self.unity_exe):
-            errors.append(f"Unity not found. Run: python main.py setup")
+            errors.append(f"Unity {REQUIRED_UNITY_VERSION} not found. Install via Unity Hub.")
         if not self.vrc_get_exe or not os.path.isfile(self.vrc_get_exe):
-            errors.append(f"vrc-get not found. Run: python main.py setup")
+            errors.append("vrc-get could not be found or downloaded. Check your internet connection.")
         for e in errors:
             print(f"[!] {e}")
         return len(errors) == 0
