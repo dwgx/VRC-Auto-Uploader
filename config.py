@@ -29,12 +29,13 @@ REQUIRED_UNITY_VERSION = "2022.3.22f1"
 
 
 def find_unity_exe() -> str | None:
-    """Search common paths for the required Unity editor version."""
+    # 1. Exact match: Official VRChat recommended version
     for base in UNITY_SEARCH_PATHS:
         candidate = os.path.join(base, REQUIRED_UNITY_VERSION, "Editor", "Unity.exe")
         if os.path.isfile(candidate):
             return candidate
-    # Fallback: search all Unity versions installed
+            
+    # 2. Fallback: search all 2022.3.x versions installed
     for base in UNITY_SEARCH_PATHS:
         if os.path.isdir(base):
             for version_dir in os.listdir(base):
@@ -42,6 +43,19 @@ def find_unity_exe() -> str | None:
                     candidate = os.path.join(base, version_dir, "Editor", "Unity.exe")
                     if os.path.isfile(candidate):
                         return candidate
+                        
+    # 3. Ultimate Fallback: return any installed Unity version (sorted to pick latest if possible)
+    available = []
+    for base in UNITY_SEARCH_PATHS:
+        if os.path.isdir(base):
+            for version_dir in os.listdir(base):
+                candidate = os.path.join(base, version_dir, "Editor", "Unity.exe")
+                if os.path.isfile(candidate):
+                    available.append((version_dir, candidate))
+    if available:
+        available.sort(reverse=True)
+        return available[0][1]
+        
     return None
 
 
@@ -135,8 +149,8 @@ class Config:
                 self.unity_exe = found
                 print(f"[setup] Found Unity: {found}")
             else:
-                print(f"[setup] ERROR: Unity {REQUIRED_UNITY_VERSION} not found!")
-                print(f"        Install it via Unity Hub or set 'unity_exe' in {CONFIG_FILE}")
+                print(f"[setup] ERROR: No valid Unity installation found!")
+                print(f"        Install Unity via Unity Hub or manually set 'unity_exe' in {CONFIG_FILE}")
                 ok = False
         else:
             print(f"[setup] Unity: {self.unity_exe}")
@@ -170,7 +184,7 @@ class Config:
 
         errors = []
         if not self.unity_exe or not os.path.isfile(self.unity_exe):
-            errors.append(f"Unity {REQUIRED_UNITY_VERSION} not found. Install via Unity Hub.")
+            errors.append(f"No Unity installation found. Install Unity via Unity Hub.")
         if not self.vrc_get_exe or not os.path.isfile(self.vrc_get_exe):
             errors.append("vrc-get could not be found or downloaded. Check your internet connection.")
         for e in errors:
