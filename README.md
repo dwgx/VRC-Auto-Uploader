@@ -190,3 +190,7 @@ VRC-Auto-Uploader/
 ---
 
 *Disclaimer: This is an educational tool. Ensure you have the rights to upload the avatars you process.*
+
+## VRChat Credential Boundary
+
+Do not commit VRChat credentials, session data, cookies, 2FA material, Unity account data, or private avatar packages. Test uploads on controlled accounts and projects before using automation for important avatars.
